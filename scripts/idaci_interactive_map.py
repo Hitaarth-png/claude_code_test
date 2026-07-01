@@ -33,6 +33,20 @@ DECILE_COLOURS = {
 }
 NO_DATA_COLOUR = "#cccccc"
 
+# Colours per GIAS "EstablishmentTypeGroup", used for the schools overlay.
+SCHOOL_CATEGORY_COLOURS = {
+    "Academies": "#1f78b4",
+    "Local authority maintained schools": "#33a02c",
+    "Children's Centres": "#ff7f00",
+    "Independent schools": "#6a3d9a",
+    "Special schools": "#e31a1c",
+    "Free Schools": "#b15928",
+    "Colleges": "#a6cee3",
+    "Universities": "#fb9a99",
+    "Other types": "#999999",
+}
+SCHOOL_DEFAULT_COLOUR = "#666666"
+
 
 def to_float(v):
     try:
@@ -92,6 +106,74 @@ def build_features(rows):
             else None,
         }
         features.append({"type": "Feature", "geometry": geometry, "properties": props})
+    return features
+
+
+def load_school_rows(csv_path):
+    with open(csv_path, encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            yield row
+
+
+def build_school_features(rows):
+    """Convert a GIAS (Get Information about Schools) establishment export
+    into point features. Easting/Northing (British National Grid, EPSG:27700)
+    are converted to WGS84 lon/lat for Leaflet. Only public, facility-level
+    fields are kept (name, type, address, aggregate pupil counts) - no head
+    teacher name or contact details."""
+    from pyproj import Transformer
+
+    to_wgs84 = Transformer.from_crs("EPSG:27700", "EPSG:4326", always_xy=True)
+
+    features = []
+    skipped = 0
+    for row in rows:
+        status = (row.get("EstablishmentStatus (name)") or "").strip()
+        if not status.startswith("Open"):
+            continue
+
+        easting = to_float(row.get("Easting"))
+        northing = to_float(row.get("Northing"))
+        if easting is None or northing is None:
+            skipped += 1
+            continue
+        lon, lat = to_wgs84.transform(easting, northing)
+
+        address_parts = [
+            row.get("Street"),
+            row.get("Locality"),
+            row.get("Town"),
+            row.get("Postcode"),
+        ]
+        address = ", ".join(p for p in address_parts if p)
+
+        category = row.get("EstablishmentTypeGroup (name)") or "Other types"
+        pupils = to_int(row.get("NumberOfPupils"))
+        pct_fsm = to_float(row.get("PercentageFSM"))
+
+        props = {
+            "urn": row.get("URN"),
+            "name": row.get("EstablishmentName"),
+            "category": category,
+            "type": row.get("TypeOfEstablishment (name)"),
+            "phase": row.get("PhaseOfEducation (name)"),
+            "status": status,
+            "age_low": to_int(row.get("StatutoryLowAge")),
+            "age_high": to_int(row.get("StatutoryHighAge")),
+            "address": address or None,
+            "postcode": row.get("Postcode") or None,
+            "ward": row.get("AdministrativeWard (name)") or None,
+            "pupils": pupils,
+            "pct_fsm": pct_fsm,
+            "website": row.get("SchoolWebsite") or None,
+        }
+        features.append(
+            {"type": "Feature", "geometry": {"type": "Point", "coordinates": [lon, lat]}, "properties": props}
+        )
+
+    if skipped:
+        print(f"Warning: skipped {skipped} school rows with no Easting/Northing")
     return features
 
 
@@ -157,10 +239,22 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
     <div id="summary"></div>
 
+    <fieldset id="schoolsFieldset">
+      <legend>Schools</legend>
+      <label><input type="checkbox" id="schoolsToggle" checked> Show schools (<span id="schoolsCount"></span>)</label>
+      <div id="schoolsCategoryLegend" style="margin-top:6px;"></div>
+    </fieldset>
+
+    <fieldset id="pitchesFieldset" style="display:none;">
+      <legend>Football pitches</legend>
+      <label><input type="checkbox" id="pitchesToggle" checked> Show pitches (<span id="pitchesCount"></span>)</label>
+    </fieldset>
+
     <footer>
       Source: 2025 English Indices of Deprivation (IDACI sub-domain), ONS mid-2022 population estimates.
+      Schools: DfE Get Information about Schools (GIAS) extract.
       Deciles: 1 = most deprived 10% of LSOAs nationally, 10 = least deprived.
-      Click an area for details.
+      Click an area, school or pitch for details.
     </footer>
   </div>
   <div id="map"></div>
@@ -310,6 +404,8 @@ const wardSelect = document.getElementById('wardFilter');
 wardSelect.addEventListener('change', e => {
   currentWard = e.target.value;
   rebuildLayer();
+  rebuildSchoolLayer();
+  rebuildPitchLayer();
   if (currentWard) {
     const bounds = L.geoJSON(DATA.features.filter(passesFilter)).getBounds();
     if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
@@ -317,6 +413,157 @@ wardSelect.addEventListener('change', e => {
     map.fitBounds(L.geoJSON(DATA).getBounds());
   }
 });
+
+// ---- Schools overlay ----
+const SCHOOLS = __SCHOOLS_GEOJSON__;
+const SCHOOL_CATEGORY_COLOURS = __SCHOOL_CATEGORY_COLOURS__;
+const SCHOOL_DEFAULT_COLOUR = "__SCHOOL_DEFAULT_COLOUR__";
+let schoolLayer = L.layerGroup();
+let schoolsVisible = true;
+const activeSchoolCategories = new Set();
+
+function schoolColour(category) {
+  return SCHOOL_CATEGORY_COLOURS[category] || SCHOOL_DEFAULT_COLOUR;
+}
+
+function schoolPassesFilter(feature) {
+  const p = feature.properties;
+  if (currentWard && p.ward !== currentWard) return false;
+  return activeSchoolCategories.has(p.category);
+}
+
+function ageRange(p) {
+  if (p.age_low === null && p.age_high === null) return null;
+  return `${p.age_low ?? '?'}–${p.age_high ?? '?'}`;
+}
+
+function schoolPopupHtml(p) {
+  const age = ageRange(p);
+  return `
+    <h3>${p.name}</h3>
+    <table>
+      <tr><td class="k">Category</td><td>${p.category || '&ndash;'}</td></tr>
+      <tr><td class="k">Type</td><td>${p.type || '&ndash;'}</td></tr>
+      <tr><td class="k">Phase</td><td>${p.phase || '&ndash;'}${age ? ' (ages ' + age + ')' : ''}</td></tr>
+      <tr><td class="k">Ward</td><td>${p.ward || '&ndash;'}</td></tr>
+      <tr><td class="k">Address</td><td>${p.address || '&ndash;'}</td></tr>
+      ${p.pupils !== null && p.pupils !== undefined ? `<tr><td class="k">Pupils on roll</td><td>${p.pupils}</td></tr>` : ''}
+      ${p.pct_fsm !== null && p.pct_fsm !== undefined ? `<tr><td class="k">% free school meals</td><td>${p.pct_fsm}%</td></tr>` : ''}
+      ${p.website ? `<tr><td class="k">Website</td><td><a href="${p.website}" target="_blank" rel="noopener">${p.website}</a></td></tr>` : ''}
+    </table>
+  `;
+}
+
+function rebuildSchoolLayer() {
+  schoolLayer.clearLayers();
+  if (!schoolsVisible) return;
+  SCHOOLS.features.filter(schoolPassesFilter).forEach(feature => {
+    const [lon, lat] = feature.geometry.coordinates;
+    const marker = L.circleMarker([lat, lon], {
+      radius: 6,
+      weight: 1,
+      color: '#222',
+      fillColor: schoolColour(feature.properties.category),
+      fillOpacity: 0.9,
+    });
+    marker.bindPopup(schoolPopupHtml(feature.properties));
+    marker.addTo(schoolLayer);
+  });
+}
+
+function renderSchoolCategoryLegend() {
+  const counts = {};
+  SCHOOLS.features.forEach(f => {
+    counts[f.properties.category] = (counts[f.properties.category] || 0) + 1;
+  });
+  const categories = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  categories.forEach(c => activeSchoolCategories.add(c));
+  const el = document.getElementById('schoolsCategoryLegend');
+  el.innerHTML = categories.map(c => `
+    <label class="legend-row" style="cursor:pointer;">
+      <input type="checkbox" class="school-cat-cb" data-cat="${c}" checked style="margin-right:6px;">
+      <span class="legend-swatch" style="background:${schoolColour(c)}"></span>${c} (${counts[c]})
+    </label>
+  `).join('');
+  document.getElementById('schoolsCount').textContent = SCHOOLS.features.length;
+  el.querySelectorAll('.school-cat-cb').forEach(cb => {
+    cb.addEventListener('change', e => {
+      const cat = e.target.dataset.cat;
+      if (e.target.checked) activeSchoolCategories.add(cat);
+      else activeSchoolCategories.delete(cat);
+      rebuildSchoolLayer();
+    });
+  });
+}
+
+document.getElementById('schoolsToggle').addEventListener('change', e => {
+  schoolsVisible = e.target.checked;
+  if (schoolsVisible) schoolLayer.addTo(map);
+  else map.removeLayer(schoolLayer);
+  rebuildSchoolLayer();
+});
+
+if (SCHOOLS.features.length) {
+  renderSchoolCategoryLegend();
+  rebuildSchoolLayer();
+  schoolLayer.addTo(map);
+} else {
+  document.getElementById('schoolsFieldset').style.display = 'none';
+}
+
+// ---- Football pitches overlay (Football Foundation Pitchfinder) ----
+const PITCHES = __PITCHES_GEOJSON__;
+let pitchLayer = L.layerGroup();
+let pitchesVisible = true;
+
+function pitchPassesFilter(feature) {
+  const p = feature.properties;
+  if (currentWard && p.ward !== currentWard) return false;
+  return true;
+}
+
+function pitchPopupHtml(p) {
+  return `
+    <h3>${p.name || 'Football pitch'}</h3>
+    <table>
+      ${p.surface ? `<tr><td class="k">Surface</td><td>${p.surface}</td></tr>` : ''}
+      ${p.type ? `<tr><td class="k">Type</td><td>${p.type}</td></tr>` : ''}
+      ${p.address ? `<tr><td class="k">Address</td><td>${p.address}</td></tr>` : ''}
+      ${p.ward ? `<tr><td class="k">Ward</td><td>${p.ward}</td></tr>` : ''}
+    </table>
+  `;
+}
+
+function rebuildPitchLayer() {
+  pitchLayer.clearLayers();
+  if (!pitchesVisible) return;
+  PITCHES.features.filter(pitchPassesFilter).forEach(feature => {
+    const [lon, lat] = feature.geometry.coordinates;
+    const marker = L.circleMarker([lat, lon], {
+      radius: 6,
+      weight: 1,
+      color: '#0b5d1e',
+      fillColor: '#7cd992',
+      fillOpacity: 0.9,
+    });
+    marker.bindPopup(pitchPopupHtml(feature.properties));
+    marker.addTo(pitchLayer);
+  });
+}
+
+document.getElementById('pitchesToggle').addEventListener('change', e => {
+  pitchesVisible = e.target.checked;
+  if (pitchesVisible) pitchLayer.addTo(map);
+  else map.removeLayer(pitchLayer);
+  rebuildPitchLayer();
+});
+
+if (PITCHES.features.length) {
+  document.getElementById('pitchesFieldset').style.display = '';
+  document.getElementById('pitchesCount').textContent = PITCHES.features.length;
+  rebuildPitchLayer();
+  pitchLayer.addTo(map);
+}
 
 renderLegend();
 rebuildLayer();
@@ -327,8 +574,10 @@ map.fitBounds(L.geoJSON(DATA).getBounds());
 """
 
 
-def build_html(features):
+def build_html(features, school_features=None, pitch_features=None):
     geojson = {"type": "FeatureCollection", "features": features}
+    schools_geojson = {"type": "FeatureCollection", "features": school_features or []}
+    pitches_geojson = {"type": "FeatureCollection", "features": pitch_features or []}
     leaflet_js = (VENDOR_DIR / "leaflet.js").read_text(encoding="utf-8")
     leaflet_css = (VENDOR_DIR / "leaflet.css").read_text(encoding="utf-8")
     html = HTML_TEMPLATE.replace("__GEOJSON__", json.dumps(geojson))
@@ -336,12 +585,18 @@ def build_html(features):
     html = html.replace("__NO_DATA_COLOUR__", NO_DATA_COLOUR)
     html = html.replace("__LEAFLET_JS__", leaflet_js)
     html = html.replace("__LEAFLET_CSS__", leaflet_css)
+    html = html.replace("__SCHOOLS_GEOJSON__", json.dumps(schools_geojson))
+    html = html.replace("__SCHOOL_CATEGORY_COLOURS__", json.dumps(SCHOOL_CATEGORY_COLOURS))
+    html = html.replace("__SCHOOL_DEFAULT_COLOUR__", SCHOOL_DEFAULT_COLOUR)
+    html = html.replace("__PITCHES_GEOJSON__", json.dumps(pitches_geojson))
     return html
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", required=True, type=Path, help="Deprivation-in-Leicester CSV")
+    parser.add_argument("--schools", type=Path, help="GIAS (Get Information about Schools) establishment export CSV")
+    parser.add_argument("--pitches", type=Path, help="Football pitches GeoJSON (e.g. exported from Pitchfinder)")
     parser.add_argument("--outdir", default=Path("output"), type=Path)
     args = parser.parse_args()
 
@@ -352,7 +607,17 @@ def main():
     if not features:
         raise SystemExit("No features parsed from input CSV - check the file format.")
 
-    html = build_html(features)
+    school_features = []
+    if args.schools:
+        school_rows = list(load_school_rows(args.schools))
+        school_features = build_school_features(school_rows)
+
+    pitch_features = []
+    if args.pitches:
+        pitch_geojson = json.loads(args.pitches.read_text(encoding="utf-8"))
+        pitch_features = pitch_geojson.get("features", [])
+
+    html = build_html(features, school_features, pitch_features)
     out_html = args.outdir / "leicester_idaci_interactive_map.html"
     out_html.write_text(html, encoding="utf-8")
 
@@ -363,6 +628,16 @@ def main():
     )
 
     print(f"Parsed {len(features)} LSOAs")
+    if school_features:
+        out_schools = args.outdir / "leicester_schools.geojson"
+        out_schools.write_text(
+            json.dumps({"type": "FeatureCollection", "features": school_features}, indent=None),
+            encoding="utf-8",
+        )
+        print(f"Parsed {len(school_features)} schools")
+        print(f"Wrote {out_schools}")
+    if pitch_features:
+        print(f"Parsed {len(pitch_features)} pitches")
     print(f"Wrote {out_html}")
     print(f"Wrote {out_geojson}")
 
