@@ -177,6 +177,92 @@ def build_school_features(rows):
     return features
 
 
+# Leicester "playing pitches by site" audit has no coordinates - only site
+# names. Where a site name matches a GIAS school (allowing for the source
+# CSV's typos/renames), we plot it at that school's location. `approx=True`
+# marks matches that are a school's grounds/stadium rather than the school
+# itself, so the popup can flag it as approximate.
+PITCH_SITE_TO_SCHOOL = {
+    "Babington Community College": ("Babington Academy", False),
+    "Beamont Leys School": ("Beaumont Leys School", False),
+    "Beamont Lodge Primary School": ("Beaumont Lodge Primary School", False),
+    "Crown Hills School": ("Crown Hills Community College", False),
+    "English Martyrs School": ("English Martyrs' Catholic School, A Voluntary Academy", False),
+    "Fulhurst Community College": ("Fullhurst Community College", False),
+    "Gateway College": ("Gateway Sixth Form College", False),
+    "Heatherbrook Primary School": ("Heatherbrook Primary Academy", False),
+    "Judgemeadow School": ("Judgemeadow Community College", False),
+    "Soar Valley College": ("Soar Valley College", False),
+    "St Pauls Catholic School": ("St Paul's Catholic School, a Voluntary Academy", False),
+    "The Lancaster School": ("Lancaster Academy", False),
+    "Wyggeston and QE College": ("WQE and Regent College Group", False),
+    "Rushey Mead School Stadium": ("Rushey Mead Academy", True),
+    "Willowbrook Primary School": ("Willowbrook Mead Primary Academy", True),
+}
+
+
+def load_pitch_inventory_rows(csv_path):
+    with open(csv_path, encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            yield row
+
+
+def build_pitch_features_from_inventory(rows, school_features):
+    """Aggregate the Leicester playing-pitches-by-site CSV (Sub Area, Site
+    Name, Access, Number of Pitches, Pitch Type, Pitch Capacity, Rating, Is
+    3G/AGP) up to one marker per site, and place sites that share a name
+    with a known school at that school's coordinates (see
+    PITCH_SITE_TO_SCHOOL). Sites with no name match are returned separately
+    so the caller can report what's still missing a location."""
+    school_coords = {f["properties"]["name"]: f["geometry"]["coordinates"] for f in school_features}
+
+    by_site = {}
+    for row in rows:
+        name = (row.get("Site Name") or "").strip()
+        if not name:
+            continue
+        by_site.setdefault(name, []).append(row)
+
+    features = []
+    unmatched = []
+    for name, items in by_site.items():
+        school_name, approx = PITCH_SITE_TO_SCHOOL.get(name, (None, False))
+        coords = school_coords.get(school_name) if school_name else None
+        if coords is None:
+            unmatched.append(name)
+            continue
+
+        pitch_rows = [i for i in items if (i.get("Pitch Type") or "").strip() != "(none currently marked)"]
+        total_pitches = sum(to_int(i.get("Number of Pitches")) or 0 for i in pitch_rows)
+        total_capacity = sum(to_int(i.get("Pitch Capacity")) or 0 for i in pitch_rows)
+        type_counts = {}
+        for i in pitch_rows:
+            t = (i.get("Pitch Type") or "").strip()
+            n = to_int(i.get("Number of Pitches")) or 0
+            type_counts[t] = type_counts.get(t, 0) + n
+        has_3g = any("3g" in (i.get("Pitch Type") or "").lower() for i in pitch_rows) or any(
+            (i.get("Is 3G / AGP") or "").strip().lower() == "yes" for i in pitch_rows
+        )
+
+        props = {
+            "name": name,
+            "sub_area": items[0].get("Sub Area"),
+            "access": items[0].get("Access"),
+            "total_pitches": total_pitches,
+            "total_capacity": total_capacity,
+            "pitch_types": type_counts,
+            "has_3g": has_3g,
+            "matched_school": school_name,
+            "approx_location": approx,
+        }
+        features.append(
+            {"type": "Feature", "geometry": {"type": "Point", "coordinates": coords}, "properties": props}
+        )
+
+    return features, unmatched
+
+
 VENDOR_DIR = Path(__file__).parent / "vendor"
 
 HTML_TEMPLATE = """<!DOCTYPE html>
@@ -253,6 +339,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <footer>
       Source: 2025 English Indices of Deprivation (IDACI sub-domain), ONS mid-2022 population estimates.
       Schools: DfE Get Information about Schools (GIAS) extract.
+      Pitches: Leicester playing pitches by site audit; dashed outline = plotted at a matched school's grounds (approximate).
       Deciles: 1 = most deprived 10% of LSOAs nationally, 10 = least deprived.
       Click an area, school or pitch for details.
     </footer>
@@ -414,6 +501,14 @@ wardSelect.addEventListener('change', e => {
   }
 });
 
+// LSOA polygons must be added to the map before the schools/pitches marker
+// layers below, so those markers end up on top of the polygons in the SVG
+// paint order and can still receive clicks (otherwise the polygon - even
+// semi-transparent - swallows the click).
+renderLegend();
+rebuildLayer();
+map.fitBounds(L.geoJSON(DATA).getBounds());
+
 // ---- Schools overlay ----
 const SCHOOLS = __SCHOOLS_GEOJSON__;
 const SCHOOL_CATEGORY_COLOURS = __SCHOOL_CATEGORY_COLOURS__;
@@ -511,25 +606,26 @@ if (SCHOOLS.features.length) {
   document.getElementById('schoolsFieldset').style.display = 'none';
 }
 
-// ---- Football pitches overlay (Football Foundation Pitchfinder) ----
+// ---- Football pitches overlay (Leicester playing-pitches-by-site audit) ----
 const PITCHES = __PITCHES_GEOJSON__;
 let pitchLayer = L.layerGroup();
 let pitchesVisible = true;
 
 function pitchPassesFilter(feature) {
-  const p = feature.properties;
-  if (currentWard && p.ward !== currentWard) return false;
   return true;
 }
 
 function pitchPopupHtml(p) {
+  const types = Object.entries(p.pitch_types || {}).map(([t, n]) => `${n}&times; ${t}`).join(', ');
   return `
-    <h3>${p.name || 'Football pitch'}</h3>
+    <h3>${p.name}</h3>
     <table>
-      ${p.surface ? `<tr><td class="k">Surface</td><td>${p.surface}</td></tr>` : ''}
-      ${p.type ? `<tr><td class="k">Type</td><td>${p.type}</td></tr>` : ''}
-      ${p.address ? `<tr><td class="k">Address</td><td>${p.address}</td></tr>` : ''}
-      ${p.ward ? `<tr><td class="k">Ward</td><td>${p.ward}</td></tr>` : ''}
+      ${p.sub_area ? `<tr><td class="k">Area</td><td>${p.sub_area}</td></tr>` : ''}
+      ${p.access ? `<tr><td class="k">Access</td><td>${p.access}</td></tr>` : ''}
+      <tr><td class="k">Pitches</td><td>${p.total_pitches} (capacity ${p.total_capacity} teams)</td></tr>
+      ${types ? `<tr><td class="k">Pitch types</td><td>${types}</td></tr>` : ''}
+      ${p.has_3g ? `<tr><td class="k">3G / AGP</td><td>Yes</td></tr>` : ''}
+      ${p.approx_location ? `<tr><td class="k">Location</td><td>Approximate - plotted at ${p.matched_school}</td></tr>` : ''}
     </table>
   `;
 }
@@ -543,8 +639,9 @@ function rebuildPitchLayer() {
       radius: 6,
       weight: 1,
       color: '#0b5d1e',
-      fillColor: '#7cd992',
+      fillColor: feature.properties.has_3g ? '#1f9e4d' : '#7cd992',
       fillOpacity: 0.9,
+      dashArray: feature.properties.approx_location ? '2,2' : null,
     });
     marker.bindPopup(pitchPopupHtml(feature.properties));
     marker.addTo(pitchLayer);
@@ -564,10 +661,6 @@ if (PITCHES.features.length) {
   rebuildPitchLayer();
   pitchLayer.addTo(map);
 }
-
-renderLegend();
-rebuildLayer();
-map.fitBounds(L.geoJSON(DATA).getBounds());
 </script>
 </body>
 </html>
@@ -596,7 +689,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", required=True, type=Path, help="Deprivation-in-Leicester CSV")
     parser.add_argument("--schools", type=Path, help="GIAS (Get Information about Schools) establishment export CSV")
-    parser.add_argument("--pitches", type=Path, help="Football pitches GeoJSON (e.g. exported from Pitchfinder)")
+    parser.add_argument(
+        "--pitches",
+        type=Path,
+        help="Football pitches: either a by-site inventory CSV (Site Name, Pitch Type, ...) "
+        "matched against --schools by name, or a GeoJSON with coordinates already present",
+    )
     parser.add_argument("--outdir", default=Path("output"), type=Path)
     args = parser.parse_args()
 
@@ -613,9 +711,14 @@ def main():
         school_features = build_school_features(school_rows)
 
     pitch_features = []
+    unmatched_sites = []
     if args.pitches:
-        pitch_geojson = json.loads(args.pitches.read_text(encoding="utf-8"))
-        pitch_features = pitch_geojson.get("features", [])
+        if args.pitches.suffix.lower() == ".csv":
+            pitch_rows = list(load_pitch_inventory_rows(args.pitches))
+            pitch_features, unmatched_sites = build_pitch_features_from_inventory(pitch_rows, school_features)
+        else:
+            pitch_geojson = json.loads(args.pitches.read_text(encoding="utf-8"))
+            pitch_features = pitch_geojson.get("features", [])
 
     html = build_html(features, school_features, pitch_features)
     out_html = args.outdir / "leicester_idaci_interactive_map.html"
@@ -637,7 +740,17 @@ def main():
         print(f"Parsed {len(school_features)} schools")
         print(f"Wrote {out_schools}")
     if pitch_features:
-        print(f"Parsed {len(pitch_features)} pitches")
+        out_pitches = args.outdir / "leicester_pitches.geojson"
+        out_pitches.write_text(
+            json.dumps({"type": "FeatureCollection", "features": pitch_features}, indent=None),
+            encoding="utf-8",
+        )
+        print(f"Parsed {len(pitch_features)} pitch sites")
+        print(f"Wrote {out_pitches}")
+    if unmatched_sites:
+        print(f"Warning: {len(unmatched_sites)} pitch sites have no known location and were skipped:")
+        for s in unmatched_sites:
+            print(f"  - {s}")
     print(f"Wrote {out_html}")
     print(f"Wrote {out_geojson}")
 
