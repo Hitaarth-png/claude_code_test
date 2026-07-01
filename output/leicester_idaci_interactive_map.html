@@ -710,6 +710,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <label><input type="radio" name="metric" value="idaci_decile" checked> IDACI decile (1 = most deprived children)</label>
       <label><input type="radio" name="metric" value="imd_decile"> Overall IMD decile</label>
       <label><input type="radio" name="metric" value="pct_children_0015"> % of population aged 0&ndash;15</label>
+      <label><input type="radio" name="metric" value="pop_0015"> Number of young people aged 0&ndash;15</label>
     </fieldset>
 
     <fieldset>
@@ -764,29 +765,32 @@ function colourForDecile(v) {
   return DECILE_COLOURS[v] || NO_DATA_COLOUR;
 }
 
-function colourForPct(v, min, max) {
+function colourForRange(v, min, max) {
   if (v === null || v === undefined) return NO_DATA_COLOUR;
   const t = max > min ? (v - min) / (max - min) : 0;
-  // pale yellow (low) -> dark red (high share of children)
+  // pale yellow (low) -> dark red (high)
   const stops = ["#ffffe5", "#fee0d2", "#fcbba1", "#fc9272", "#fb6a4a", "#ef3b2c", "#cb181d", "#a50f15", "#67000d"];
   const idx = Math.min(stops.length - 1, Math.floor(t * stops.length));
   return stops[idx];
 }
 
-let pctRange = { min: 0, max: 100 };
-(function computePctRange() {
-  const vals = DATA.features.map(f => f.properties.pct_children_0015).filter(v => v !== null && v !== undefined);
-  if (vals.length) {
-    pctRange.min = Math.min(...vals);
-    pctRange.max = Math.max(...vals);
-  }
-})();
+const CONTINUOUS_METRICS = ['pct_children_0015', 'pop_0015'];
+
+function computeRange(prop) {
+  const vals = DATA.features.map(f => f.properties[prop]).filter(v => v !== null && v !== undefined);
+  return vals.length ? { min: Math.min(...vals), max: Math.max(...vals) } : { min: 0, max: 100 };
+}
+
+let pctRange = computeRange('pct_children_0015');
+let pop0015Range = computeRange('pop_0015');
 
 function styleFor(feature) {
   const p = feature.properties;
   let fill;
   if (currentMetric === 'pct_children_0015') {
-    fill = colourForPct(p.pct_children_0015, pctRange.min, pctRange.max);
+    fill = colourForRange(p.pct_children_0015, pctRange.min, pctRange.max);
+  } else if (currentMetric === 'pop_0015') {
+    fill = colourForRange(p.pop_0015, pop0015Range.min, pop0015Range.max);
   } else {
     fill = colourForDecile(p[currentMetric]);
   }
@@ -858,6 +862,14 @@ function renderLegend() {
       <div class="legend-row"><span class="legend-swatch" style="background:#ffffe5"></span>${pctRange.min.toFixed(0)}% (fewest children)</div>
       <div class="legend-row"><span class="legend-swatch" style="background:#fb6a4a"></span>mid-range</div>
       <div class="legend-row"><span class="legend-swatch" style="background:#67000d"></span>${pctRange.max.toFixed(0)}% (most children)</div>
+    `;
+    return;
+  }
+  if (currentMetric === 'pop_0015') {
+    el.innerHTML = `
+      <div class="legend-row"><span class="legend-swatch" style="background:#ffffe5"></span>${pop0015Range.min} young people (fewest)</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:#fb6a4a"></span>mid-range</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:#67000d"></span>${pop0015Range.max} young people (most)</div>
     `;
     return;
   }
