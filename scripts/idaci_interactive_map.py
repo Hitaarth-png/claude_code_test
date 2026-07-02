@@ -401,6 +401,66 @@ def build_social_mobility_partner_features(rows):
     return features, unmatched
 
 
+# Football providers CSV gives a base/address in free text, not
+# coordinates. Organisations with a specific, single site are matched here
+# either to a known landmark address (looked up via public postcode data)
+# or to a school already on the map (when their "home ground" is a school
+# we've already geocoded). Organisations that operate city-wide with no
+# single site (private coaching delivered in many venues, clubs with only a
+# vague area name) are reported as skipped rather than guessed.
+FOOTBALL_PROVIDER_TO_SCHOOL = {
+    "AFC Leicester Ladies and Girls": "Babington Academy",
+}
+FOOTBALL_PROVIDER_COORDS = {
+    "Leicester City in the Community (LCitC)": (52.6206, -1.1428, "King Power Stadium, Filbert Way, Leicester, LE2 7FL"),
+    "Leicester Lions RFC (hosts leagues)": (52.56499, -1.169145, "Lutterworth Road, Blaby, Leicester, LE8 4DY"),
+}
+
+
+def load_football_provider_rows(csv_path):
+    with open(csv_path, encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            yield row
+
+
+def build_football_provider_features(rows, school_features):
+    school_coords = {f["properties"]["name"]: f["geometry"]["coordinates"] for f in school_features}
+
+    features = []
+    unmatched = []
+    for row in rows:
+        name = (row.get("Organisation") or "").strip()
+        if not name:
+            continue
+
+        approx = False
+        school_name = FOOTBALL_PROVIDER_TO_SCHOOL.get(name)
+        if school_name and school_coords.get(school_name):
+            lon, lat = school_coords[school_name]
+            address = f"{school_name} (home ground)"
+            approx = True
+        elif name in FOOTBALL_PROVIDER_COORDS:
+            lat, lon, address = FOOTBALL_PROVIDER_COORDS[name]
+        else:
+            unmatched.append(name)
+            continue
+
+        props = {
+            "name": name,
+            "type": row.get("Type"),
+            "base": row.get("Address/Base"),
+            "address": address,
+            "age_range": row.get("Age Range"),
+            "notes": row.get("Notes"),
+            "approx_location": approx,
+        }
+        features.append(
+            {"type": "Feature", "geometry": {"type": "Point", "coordinates": [lon, lat]}, "properties": props}
+        )
+    return features, unmatched
+
+
 VENDOR_DIR = Path(__file__).parent / "vendor"
 
 HTML_TEMPLATE = """<!DOCTYPE html>
@@ -422,6 +482,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   h1 { font-size: 17px; margin: 0 0 4px; }
   .subtitle { font-size: 12px; color: #555; margin: 0 0 16px; }
   fieldset { border: 1px solid #ddd; border-radius: 6px; margin-bottom: 14px; padding: 10px; }
+  .point-group { border-top: 1px solid #e5e5e5; margin-top: 8px; padding-top: 8px; }
+  .point-group:first-of-type { border-top: none; margin-top: 4px; padding-top: 0; }
   legend { font-size: 12px; font-weight: 600; color: #333; padding: 0 4px; }
   label { display: block; font-size: 13px; margin: 4px 0; cursor: pointer; }
   select, input[type=text] { width: 100%; padding: 5px; font-size: 13px; box-sizing: border-box; margin-top: 4px; }
@@ -465,25 +527,30 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
     <div id="summary"></div>
 
-    <fieldset id="schoolsFieldset">
-      <legend>Schools</legend>
-      <label><input type="checkbox" id="schoolsToggle" checked> Show schools (<span id="schoolsCount"></span>)</label>
-      <div id="schoolsCategoryLegend" style="margin-top:6px;"></div>
-    </fieldset>
+    <fieldset id="pointsFieldset">
+      <legend>Points</legend>
+      <label><input type="checkbox" id="allPointsToggle" checked> <strong>Show all points</strong></label>
 
-    <fieldset id="pitchesFieldset" style="display:none;">
-      <legend>Football pitches</legend>
-      <label><input type="checkbox" id="pitchesToggle" checked> Show pitches (<span id="pitchesCount"></span>)</label>
-    </fieldset>
+      <div class="point-group" id="schoolsGroup">
+        <label><input type="checkbox" id="schoolsToggle" checked> Schools (<span id="schoolsCount"></span>)</label>
+        <div id="schoolsCategoryLegend" style="margin-top:6px;"></div>
+      </div>
 
-    <fieldset id="youthCentresFieldset" style="display:none;">
-      <legend>Youth centres</legend>
-      <label><input type="checkbox" id="youthCentresToggle" checked> Show youth centres (<span id="youthCentresCount"></span>)</label>
-    </fieldset>
+      <div class="point-group" id="pitchesGroup" style="display:none;">
+        <label><input type="checkbox" id="pitchesToggle" checked> Football pitches (<span id="pitchesCount"></span>)</label>
+      </div>
 
-    <fieldset id="socialMobilityFieldset" style="display:none;">
-      <legend>Social mobility partners</legend>
-      <label><input type="checkbox" id="socialMobilityToggle" checked> Show partners (<span id="socialMobilityCount"></span>)</label>
+      <div class="point-group" id="footballProvidersGroup" style="display:none;">
+        <label><input type="checkbox" id="footballProvidersToggle" checked> Football providers (<span id="footballProvidersCount"></span>)</label>
+      </div>
+
+      <div class="point-group" id="youthCentresGroup" style="display:none;">
+        <label><input type="checkbox" id="youthCentresToggle" checked> Youth centres (<span id="youthCentresCount"></span>)</label>
+      </div>
+
+      <div class="point-group" id="socialMobilityGroup" style="display:none;">
+        <label><input type="checkbox" id="socialMobilityToggle" checked> Social mobility partners (<span id="socialMobilityCount"></span>)</label>
+      </div>
     </fieldset>
 
     <footer>
@@ -781,7 +848,7 @@ if (SCHOOLS.features.length) {
   rebuildSchoolLayer();
   schoolLayer.addTo(map);
 } else {
-  document.getElementById('schoolsFieldset').style.display = 'none';
+  document.getElementById('schoolsGroup').style.display = 'none';
 }
 
 // ---- Football pitches overlay (Leicester playing-pitches-by-site audit) ----
@@ -834,10 +901,60 @@ document.getElementById('pitchesToggle').addEventListener('change', e => {
 });
 
 if (PITCHES.features.length) {
-  document.getElementById('pitchesFieldset').style.display = '';
+  document.getElementById('pitchesGroup').style.display = '';
   document.getElementById('pitchesCount').textContent = PITCHES.features.length;
   rebuildPitchLayer();
   pitchLayer.addTo(map);
+}
+
+// ---- Football providers overlay ----
+const FOOTBALL_PROVIDERS = __FOOTBALL_PROVIDERS_GEOJSON__;
+let footballProviderLayer = L.layerGroup();
+let footballProvidersVisible = true;
+
+function footballProviderPopupHtml(p) {
+  return `
+    <h3>${p.name}</h3>
+    <table>
+      ${p.type ? `<tr><td class="k">Type</td><td>${p.type}</td></tr>` : ''}
+      ${p.address ? `<tr><td class="k">Address</td><td>${p.address}</td></tr>` : ''}
+      ${p.age_range ? `<tr><td class="k">Age range</td><td>${p.age_range}</td></tr>` : ''}
+      ${p.notes ? `<tr><td class="k">Notes</td><td>${p.notes}</td></tr>` : ''}
+      ${p.approx_location ? `<tr><td class="k">Location</td><td>Approximate - plotted at home ground</td></tr>` : ''}
+    </table>
+  `;
+}
+
+function rebuildFootballProviderLayer() {
+  footballProviderLayer.clearLayers();
+  if (!footballProvidersVisible) return;
+  FOOTBALL_PROVIDERS.features.forEach(feature => {
+    const [lon, lat] = feature.geometry.coordinates;
+    const marker = L.circleMarker([lat, lon], {
+      radius: 7,
+      weight: 1.5,
+      color: '#004d40',
+      fillColor: '#26a69a',
+      fillOpacity: 0.9,
+      dashArray: feature.properties.approx_location ? '2,2' : null,
+    });
+    marker.bindPopup(footballProviderPopupHtml(feature.properties));
+    marker.addTo(footballProviderLayer);
+  });
+}
+
+document.getElementById('footballProvidersToggle').addEventListener('change', e => {
+  footballProvidersVisible = e.target.checked;
+  if (footballProvidersVisible) footballProviderLayer.addTo(map);
+  else map.removeLayer(footballProviderLayer);
+  rebuildFootballProviderLayer();
+});
+
+if (FOOTBALL_PROVIDERS.features.length) {
+  document.getElementById('footballProvidersGroup').style.display = '';
+  document.getElementById('footballProvidersCount').textContent = FOOTBALL_PROVIDERS.features.length;
+  rebuildFootballProviderLayer();
+  footballProviderLayer.addTo(map);
 }
 
 // ---- Youth centres overlay ----
@@ -889,7 +1006,7 @@ document.getElementById('youthCentresToggle').addEventListener('change', e => {
 });
 
 if (YOUTH_CENTRES.features.length) {
-  document.getElementById('youthCentresFieldset').style.display = '';
+  document.getElementById('youthCentresGroup').style.display = '';
   document.getElementById('youthCentresCount').textContent = YOUTH_CENTRES.features.length;
   rebuildYouthCentreLayer();
   youthCentreLayer.addTo(map);
@@ -938,11 +1055,23 @@ document.getElementById('socialMobilityToggle').addEventListener('change', e => 
 });
 
 if (SOCIAL_MOBILITY_PARTNERS.features.length) {
-  document.getElementById('socialMobilityFieldset').style.display = '';
+  document.getElementById('socialMobilityGroup').style.display = '';
   document.getElementById('socialMobilityCount').textContent = SOCIAL_MOBILITY_PARTNERS.features.length;
   rebuildSocialMobilityLayer();
   socialMobilityLayer.addTo(map);
 }
+
+// ---- "Show all points" master toggle ----
+document.getElementById('allPointsToggle').addEventListener('change', e => {
+  const checked = e.target.checked;
+  ['schoolsToggle', 'pitchesToggle', 'footballProvidersToggle', 'youthCentresToggle', 'socialMobilityToggle'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.checked !== checked) {
+      el.checked = checked;
+      el.dispatchEvent(new Event('change'));
+    }
+  });
+});
 </script>
 </body>
 </html>
@@ -956,6 +1085,7 @@ def build_html(
     youth_centre_features=None,
     social_mobility_partner_features=None,
     ward_boundary_features=None,
+    football_provider_features=None,
 ):
     geojson = {"type": "FeatureCollection", "features": features}
     schools_geojson = {"type": "FeatureCollection", "features": school_features or []}
@@ -963,6 +1093,7 @@ def build_html(
     youth_centres_geojson = {"type": "FeatureCollection", "features": youth_centre_features or []}
     social_mobility_geojson = {"type": "FeatureCollection", "features": social_mobility_partner_features or []}
     ward_boundaries_geojson = {"type": "FeatureCollection", "features": ward_boundary_features or []}
+    football_providers_geojson = {"type": "FeatureCollection", "features": football_provider_features or []}
     leaflet_js = (VENDOR_DIR / "leaflet.js").read_text(encoding="utf-8")
     leaflet_css = (VENDOR_DIR / "leaflet.css").read_text(encoding="utf-8")
     html = HTML_TEMPLATE.replace("__GEOJSON__", json.dumps(geojson))
@@ -977,6 +1108,7 @@ def build_html(
     html = html.replace("__YOUTH_CENTRES_GEOJSON__", json.dumps(youth_centres_geojson))
     html = html.replace("__SOCIAL_MOBILITY_PARTNERS_GEOJSON__", json.dumps(social_mobility_geojson))
     html = html.replace("__WARD_BOUNDARIES_GEOJSON__", json.dumps(ward_boundaries_geojson))
+    html = html.replace("__FOOTBALL_PROVIDERS_GEOJSON__", json.dumps(football_providers_geojson))
     return html
 
 
@@ -999,6 +1131,11 @@ def main():
         "--social-mobility-partners",
         type=Path,
         help="Social mobility partners CSV (Organisation, Type, Geographic Scope, ...) matched by organisation name",
+    )
+    parser.add_argument(
+        "--football-providers",
+        type=Path,
+        help="Football providers CSV (Organisation, Type, Address/Base, ...) matched by organisation name",
     )
     parser.add_argument("--outdir", default=Path("output"), type=Path)
     args = parser.parse_args()
@@ -1037,6 +1174,14 @@ def main():
         partner_rows = list(load_social_mobility_partner_rows(args.social_mobility_partners))
         social_mobility_features, unmatched_partners = build_social_mobility_partner_features(partner_rows)
 
+    football_provider_features = []
+    unmatched_providers = []
+    if args.football_providers:
+        provider_rows = list(load_football_provider_rows(args.football_providers))
+        football_provider_features, unmatched_providers = build_football_provider_features(
+            provider_rows, school_features
+        )
+
     ward_boundary_features = build_ward_boundaries(features)
 
     html = build_html(
@@ -1046,6 +1191,7 @@ def main():
         youth_centre_features,
         social_mobility_features,
         ward_boundary_features,
+        football_provider_features,
     )
     out_html = args.outdir / "leicester_idaci_interactive_map.html"
     out_html.write_text(html, encoding="utf-8")
@@ -1107,6 +1253,18 @@ def main():
     if unmatched_partners:
         print(f"Warning: {len(unmatched_partners)} social mobility partners have no known location and were skipped:")
         for s in unmatched_partners:
+            print(f"  - {s}")
+    if football_provider_features:
+        out_providers = args.outdir / "leicester_football_providers.geojson"
+        out_providers.write_text(
+            json.dumps({"type": "FeatureCollection", "features": football_provider_features}, indent=None),
+            encoding="utf-8",
+        )
+        print(f"Parsed {len(football_provider_features)} football providers")
+        print(f"Wrote {out_providers}")
+    if unmatched_providers:
+        print(f"Warning: {len(unmatched_providers)} football providers have no known location and were skipped:")
+        for s in unmatched_providers:
             print(f"  - {s}")
     print(f"Wrote {out_html}")
     print(f"Wrote {out_geojson}")

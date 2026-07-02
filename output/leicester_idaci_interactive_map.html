@@ -683,6 +683,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
   h1 { font-size: 17px; margin: 0 0 4px; }
   .subtitle { font-size: 12px; color: #555; margin: 0 0 16px; }
   fieldset { border: 1px solid #ddd; border-radius: 6px; margin-bottom: 14px; padding: 10px; }
+  .point-group { border-top: 1px solid #e5e5e5; margin-top: 8px; padding-top: 8px; }
+  .point-group:first-of-type { border-top: none; margin-top: 4px; padding-top: 0; }
   legend { font-size: 12px; font-weight: 600; color: #333; padding: 0 4px; }
   label { display: block; font-size: 13px; margin: 4px 0; cursor: pointer; }
   select, input[type=text] { width: 100%; padding: 5px; font-size: 13px; box-sizing: border-box; margin-top: 4px; }
@@ -726,25 +728,30 @@ svg.leaflet-image-layer.leaflet-interactive path {
 
     <div id="summary"></div>
 
-    <fieldset id="schoolsFieldset">
-      <legend>Schools</legend>
-      <label><input type="checkbox" id="schoolsToggle" checked> Show schools (<span id="schoolsCount"></span>)</label>
-      <div id="schoolsCategoryLegend" style="margin-top:6px;"></div>
-    </fieldset>
+    <fieldset id="pointsFieldset">
+      <legend>Points</legend>
+      <label><input type="checkbox" id="allPointsToggle" checked> <strong>Show all points</strong></label>
 
-    <fieldset id="pitchesFieldset" style="display:none;">
-      <legend>Football pitches</legend>
-      <label><input type="checkbox" id="pitchesToggle" checked> Show pitches (<span id="pitchesCount"></span>)</label>
-    </fieldset>
+      <div class="point-group" id="schoolsGroup">
+        <label><input type="checkbox" id="schoolsToggle" checked> Schools (<span id="schoolsCount"></span>)</label>
+        <div id="schoolsCategoryLegend" style="margin-top:6px;"></div>
+      </div>
 
-    <fieldset id="youthCentresFieldset" style="display:none;">
-      <legend>Youth centres</legend>
-      <label><input type="checkbox" id="youthCentresToggle" checked> Show youth centres (<span id="youthCentresCount"></span>)</label>
-    </fieldset>
+      <div class="point-group" id="pitchesGroup" style="display:none;">
+        <label><input type="checkbox" id="pitchesToggle" checked> Football pitches (<span id="pitchesCount"></span>)</label>
+      </div>
 
-    <fieldset id="socialMobilityFieldset" style="display:none;">
-      <legend>Social mobility partners</legend>
-      <label><input type="checkbox" id="socialMobilityToggle" checked> Show partners (<span id="socialMobilityCount"></span>)</label>
+      <div class="point-group" id="footballProvidersGroup" style="display:none;">
+        <label><input type="checkbox" id="footballProvidersToggle" checked> Football providers (<span id="footballProvidersCount"></span>)</label>
+      </div>
+
+      <div class="point-group" id="youthCentresGroup" style="display:none;">
+        <label><input type="checkbox" id="youthCentresToggle" checked> Youth centres (<span id="youthCentresCount"></span>)</label>
+      </div>
+
+      <div class="point-group" id="socialMobilityGroup" style="display:none;">
+        <label><input type="checkbox" id="socialMobilityToggle" checked> Social mobility partners (<span id="socialMobilityCount"></span>)</label>
+      </div>
     </fieldset>
 
     <footer>
@@ -1042,7 +1049,7 @@ if (SCHOOLS.features.length) {
   rebuildSchoolLayer();
   schoolLayer.addTo(map);
 } else {
-  document.getElementById('schoolsFieldset').style.display = 'none';
+  document.getElementById('schoolsGroup').style.display = 'none';
 }
 
 // ---- Football pitches overlay (Leicester playing-pitches-by-site audit) ----
@@ -1095,10 +1102,60 @@ document.getElementById('pitchesToggle').addEventListener('change', e => {
 });
 
 if (PITCHES.features.length) {
-  document.getElementById('pitchesFieldset').style.display = '';
+  document.getElementById('pitchesGroup').style.display = '';
   document.getElementById('pitchesCount').textContent = PITCHES.features.length;
   rebuildPitchLayer();
   pitchLayer.addTo(map);
+}
+
+// ---- Football providers overlay ----
+const FOOTBALL_PROVIDERS = {"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": {"type": "Point", "coordinates": [-1.1428, 52.6206]}, "properties": {"name": "Leicester City in the Community (LCitC)", "type": "Club community foundation (charity)", "base": "King Power Stadium / city-wide sites", "address": "King Power Stadium, Filbert Way, Leicester, LE2 7FL", "age_range": "All ages incl. youth", "notes": "Independent registered charity; football + education/health programmes across Education, Community, Health & Wellbeing themes; runs disability/inclusive football (Blind Football, Futsal, Walking Football etc.)", "approx_location": false}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [-1.1596444096265663, 52.661419952210565]}, "properties": {"name": "AFC Leicester Ladies and Girls", "type": "Grassroots club", "base": "Soar Valley School / Babbington Community College, Leicester", "address": "Babington Academy (home ground)", "age_range": "6 to open age", "notes": "Ladies and girls football club; home ground Babbington Community College; winter training at Soar Valley Leisure Centre", "approx_location": true}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [-1.169145, 52.56499]}, "properties": {"name": "Leicester Lions RFC (hosts leagues)", "type": "Facility / league host", "base": "Lutterworth Road, Blaby, LE8 4DY", "address": "Lutterworth Road, Blaby, Leicester, LE8 4DY", "age_range": "Youth leagues (admin base)", "notes": "Hosts AGMs/committee meetings for several county junior leagues", "approx_location": false}}]};
+let footballProviderLayer = L.layerGroup();
+let footballProvidersVisible = true;
+
+function footballProviderPopupHtml(p) {
+  return `
+    <h3>${p.name}</h3>
+    <table>
+      ${p.type ? `<tr><td class="k">Type</td><td>${p.type}</td></tr>` : ''}
+      ${p.address ? `<tr><td class="k">Address</td><td>${p.address}</td></tr>` : ''}
+      ${p.age_range ? `<tr><td class="k">Age range</td><td>${p.age_range}</td></tr>` : ''}
+      ${p.notes ? `<tr><td class="k">Notes</td><td>${p.notes}</td></tr>` : ''}
+      ${p.approx_location ? `<tr><td class="k">Location</td><td>Approximate - plotted at home ground</td></tr>` : ''}
+    </table>
+  `;
+}
+
+function rebuildFootballProviderLayer() {
+  footballProviderLayer.clearLayers();
+  if (!footballProvidersVisible) return;
+  FOOTBALL_PROVIDERS.features.forEach(feature => {
+    const [lon, lat] = feature.geometry.coordinates;
+    const marker = L.circleMarker([lat, lon], {
+      radius: 7,
+      weight: 1.5,
+      color: '#004d40',
+      fillColor: '#26a69a',
+      fillOpacity: 0.9,
+      dashArray: feature.properties.approx_location ? '2,2' : null,
+    });
+    marker.bindPopup(footballProviderPopupHtml(feature.properties));
+    marker.addTo(footballProviderLayer);
+  });
+}
+
+document.getElementById('footballProvidersToggle').addEventListener('change', e => {
+  footballProvidersVisible = e.target.checked;
+  if (footballProvidersVisible) footballProviderLayer.addTo(map);
+  else map.removeLayer(footballProviderLayer);
+  rebuildFootballProviderLayer();
+});
+
+if (FOOTBALL_PROVIDERS.features.length) {
+  document.getElementById('footballProvidersGroup').style.display = '';
+  document.getElementById('footballProvidersCount').textContent = FOOTBALL_PROVIDERS.features.length;
+  rebuildFootballProviderLayer();
+  footballProviderLayer.addTo(map);
 }
 
 // ---- Youth centres overlay ----
@@ -1150,7 +1207,7 @@ document.getElementById('youthCentresToggle').addEventListener('change', e => {
 });
 
 if (YOUTH_CENTRES.features.length) {
-  document.getElementById('youthCentresFieldset').style.display = '';
+  document.getElementById('youthCentresGroup').style.display = '';
   document.getElementById('youthCentresCount').textContent = YOUTH_CENTRES.features.length;
   rebuildYouthCentreLayer();
   youthCentreLayer.addTo(map);
@@ -1199,11 +1256,23 @@ document.getElementById('socialMobilityToggle').addEventListener('change', e => 
 });
 
 if (SOCIAL_MOBILITY_PARTNERS.features.length) {
-  document.getElementById('socialMobilityFieldset').style.display = '';
+  document.getElementById('socialMobilityGroup').style.display = '';
   document.getElementById('socialMobilityCount').textContent = SOCIAL_MOBILITY_PARTNERS.features.length;
   rebuildSocialMobilityLayer();
   socialMobilityLayer.addTo(map);
 }
+
+// ---- "Show all points" master toggle ----
+document.getElementById('allPointsToggle').addEventListener('change', e => {
+  const checked = e.target.checked;
+  ['schoolsToggle', 'pitchesToggle', 'footballProvidersToggle', 'youthCentresToggle', 'socialMobilityToggle'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.checked !== checked) {
+      el.checked = checked;
+      el.dispatchEvent(new Event('change'));
+    }
+  });
+});
 </script>
 </body>
 </html>
