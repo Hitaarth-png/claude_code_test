@@ -487,6 +487,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   fieldset { border: 1px solid #ddd; border-radius: 6px; margin-bottom: 14px; padding: 10px; }
   .point-group { border-top: 1px solid #e5e5e5; margin-top: 8px; padding-top: 8px; }
   .point-group:first-of-type { border-top: none; margin-top: 4px; padding-top: 0; }
+  .subsection-list { margin-top: 6px; padding-left: 18px; border-left: 2px solid #e5e5e5; }
+  .subsection-list .legend-row { padding: 2px 0; }
   legend { font-size: 12px; font-weight: 600; color: #333; padding: 0 4px; }
   label { display: block; font-size: 13px; margin: 4px 0; cursor: pointer; }
   select, input[type=text] { width: 100%; padding: 5px; font-size: 13px; box-sizing: border-box; margin-top: 4px; }
@@ -535,7 +537,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
       <div class="point-group" id="schoolsGroup">
         <label><input type="checkbox" id="schoolsToggle" checked> Schools (<span id="schoolsCount"></span>)</label>
-        <div id="schoolsCategoryLegend" style="margin-top:6px;"></div>
+        <div id="schoolsCategoryLegend" class="subsection-list"></div>
       </div>
 
       <div class="point-group" id="pitchesGroup" style="display:none;">
