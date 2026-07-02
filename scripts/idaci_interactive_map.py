@@ -40,6 +40,21 @@ NO_DATA_COLOUR = "#cccccc"
 # 2021 LSOA count for England.
 ENGLAND_LSOA_COUNT = 33755
 
+# Year 6 obesity (incl. severe obesity) prevalence by MSOA, 2021/22-2023/24
+# 3-year average. Source: Leicester City Council NCMP 2023/24 report - these
+# are the only MSOAs given an exact percentage in the report text (others
+# are only shown as a colour band on a map image, which we're not using
+# since it's ambiguous which age group's scale it reflects). Leicester city
+# average for context: 25.6%.
+YEAR6_OBESITY_PCT_BY_MSOA = {
+    "Kirby Frith": 31.9,
+    "Newfoundpool": 31.9,
+    "Bradgate Heights & Beaumont Leys": 30.6,
+    "Stocking Farm & Mowmacre": 29.6,
+    "Clarendon Park & Stoneygate South": 18.4,
+    "Knighton": 16.3,
+}
+
 # Colours per GIAS "EstablishmentTypeGroup", used for the schools overlay.
 SCHOOL_CATEGORY_COLOURS = {
     "Academies": "#1f78b4",
@@ -89,12 +104,14 @@ def build_features(rows):
 
         pop_0015 = to_int(row.get("Pop_0015_2022"))
         pop_total = to_int(row.get("Pop_2022"))
+        msoa_name = row.get("MSOA HCL Name") or row.get("MSOA Name")
 
         props = {
             "lsoa_code": row.get("LSOA code"),
             "lsoa_name": row.get("LSOA name"),
             "ward": row.get("Ward Name"),
-            "msoa_name": row.get("MSOA HCL Name") or row.get("MSOA Name"),
+            "msoa_name": msoa_name,
+            "year6_obesity_pct": YEAR6_OBESITY_PCT_BY_MSOA.get(msoa_name),
             "parliamentary_constituency": row.get("Parliamentary Constituency"),
             "idaci_score": (
                 round(to_float(row.get("IDACI_score")) * 100, 1)
@@ -517,6 +534,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       <label><input type="radio" name="metric" value="imd_decile"> Overall IMD decile</label>
       <label><input type="radio" name="metric" value="pct_children_0015"> % of population aged 0&ndash;15</label>
       <label><input type="radio" name="metric" value="pop_0015"> Number of young people aged 0&ndash;15</label>
+      <label><input type="radio" name="metric" value="year6_obesity_pct"> Year 6 obesity rate (6 MSOAs only)</label>
     </fieldset>
 
     <fieldset>
@@ -561,6 +579,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       Source: 2025 English Indices of Deprivation (IDACI sub-domain), ONS mid-2022 population estimates.
       Schools: DfE Get Information about Schools (GIAS) extract.
       Pitches: Leicester playing pitches by site audit; dashed outline = plotted at a matched school's grounds (approximate).
+      Year 6 obesity: Leicester City Council NCMP 2023/24 report, 3-year average by MSOA - only the 6 MSOAs the report gives an exact figure for; applied to all LSOAs within that MSOA.
       Deciles: 1 = most deprived 10% of LSOAs nationally, 10 = least deprived.
       Click an area, school or pitch for details.
     </footer>
@@ -595,7 +614,7 @@ function colourForRange(v, min, max) {
   return stops[idx];
 }
 
-const CONTINUOUS_METRICS = ['pct_children_0015', 'pop_0015'];
+const CONTINUOUS_METRICS = ['pct_children_0015', 'pop_0015', 'year6_obesity_pct'];
 
 function computeRange(prop) {
   const vals = DATA.features.map(f => f.properties[prop]).filter(v => v !== null && v !== undefined);
@@ -604,6 +623,7 @@ function computeRange(prop) {
 
 let pctRange = computeRange('pct_children_0015');
 let pop0015Range = computeRange('pop_0015');
+let obesityRange = computeRange('year6_obesity_pct');
 
 function styleFor(feature) {
   const p = feature.properties;
@@ -612,6 +632,8 @@ function styleFor(feature) {
     fill = colourForRange(p.pct_children_0015, pctRange.min, pctRange.max);
   } else if (currentMetric === 'pop_0015') {
     fill = colourForRange(p.pop_0015, pop0015Range.min, pop0015Range.max);
+  } else if (currentMetric === 'year6_obesity_pct') {
+    fill = colourForRange(p.year6_obesity_pct, obesityRange.min, obesityRange.max);
   } else {
     fill = colourForDecile(p[currentMetric]);
   }
@@ -635,6 +657,7 @@ function popupHtml(p) {
       <tr><td class="k">Overall IMD decile</td><td>${fmt(p.imd_decile)}</td></tr>
       <tr><td class="k">Population 0&ndash;15</td><td>${fmt(p.pop_0015)} (${fmt(p.pct_children_0015, '%')} of area)</td></tr>
       <tr><td class="k">Total population</td><td>${fmt(p.pop_total)}</td></tr>
+      ${p.year6_obesity_pct !== null && p.year6_obesity_pct !== undefined ? `<tr><td class="k">Year 6 obesity rate (MSOA, NCMP 23/24)</td><td>${p.year6_obesity_pct}%</td></tr>` : ''}
     </table>
   `;
 }
@@ -691,6 +714,15 @@ function renderLegend() {
       <div class="legend-row"><span class="legend-swatch" style="background:#ffffe5"></span>${pop0015Range.min} young people (fewest)</div>
       <div class="legend-row"><span class="legend-swatch" style="background:#fb6a4a"></span>mid-range</div>
       <div class="legend-row"><span class="legend-swatch" style="background:#67000d"></span>${pop0015Range.max} young people (most)</div>
+    `;
+    return;
+  }
+  if (currentMetric === 'year6_obesity_pct') {
+    el.innerHTML = `
+      <div class="legend-row"><span class="legend-swatch" style="background:#ffffe5"></span>${obesityRange.min}% (lowest of the 6)</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:#fb6a4a"></span>mid-range</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:#67000d"></span>${obesityRange.max}% (highest of the 6)</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:${NO_DATA_COLOUR}"></span>No data (32 of 38 MSOAs)</div>
     `;
     return;
   }
