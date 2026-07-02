@@ -736,6 +736,11 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <label><input type="checkbox" id="pitchesToggle" checked> Show pitches (<span id="pitchesCount"></span>)</label>
     </fieldset>
 
+    <fieldset id="youthCentresFieldset" style="display:none;">
+      <legend>Youth centres</legend>
+      <label><input type="checkbox" id="youthCentresToggle" checked> Show youth centres (<span id="youthCentresCount"></span>)</label>
+    </fieldset>
+
     <footer>
       Source: 2025 English Indices of Deprivation (IDACI sub-domain), ONS mid-2022 population estimates.
       Schools: DfE Get Information about Schools (GIAS) extract.
@@ -1071,6 +1076,61 @@ if (PITCHES.features.length) {
   document.getElementById('pitchesCount').textContent = PITCHES.features.length;
   rebuildPitchLayer();
   pitchLayer.addTo(map);
+}
+
+// ---- Youth centres overlay ----
+const YOUTH_CENTRES = {"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": {"type": "Point", "coordinates": [-1.120608, 52.650907]}, "properties": {"name": "Belgrave", "address": "Cossington Street", "postcode": "LE4 6JD", "ward": "Belgrave", "age_range": "13-19", "session_days": "Tuesdays 6:30-8:30pm", "focus": "Drop-in; educational support, social space, informal learning", "approx_location": false}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [-1.145732, 52.590578]}, "properties": {"name": "Kingfisher", "address": "Boulder Lane, Saffron Lane estate", "postcode": "LE2 6LE", "ward": "Eyres Monsell", "age_range": "13-25", "session_days": "Thursdays 4:30-6:30pm (SEND); Fridays 6:30-8:30pm (drop-in)", "focus": "Arts and crafts, sports, individual support", "approx_location": true}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [-1.061196, 52.645462]}, "properties": {"name": "Netherhall", "address": "Armadale Drive", "postcode": "LE5 1HF", "ward": "Netherhall / Rushey Mead area", "age_range": "13-25", "session_days": "Tuesdays 4:30-6:30pm (SEND); Wednesdays 6:30-8:30pm (drop-in)", "focus": "Arts and crafts, sports, internet access, individual support", "approx_location": false}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [-1.1808, 52.6445]}, "properties": {"name": "New Parks", "address": "St Oswalds Road", "postcode": "LE3 6RJ", "ward": "New Parks", "age_range": "13-25", "session_days": "Tuesdays & Thursdays 6:30-8:30pm (drop-in); Fridays 4:30-6:30pm (SEND); closed session for boys re: knife/gang crime", "focus": "Arts and crafts, cooking, trips, youth forum, individual support", "approx_location": false}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [-1.120452, 52.639506]}, "properties": {"name": "St Matthews", "address": "St Matthews Neighbourhood Centre, Malabar Road", "postcode": "LE1 2PD", "ward": "St Matthews / Spinney Hills area", "age_range": "13-19", "session_days": "Fridays 6:30-8:30pm", "focus": "Drop-in; social space, learning opportunities, guidance from youth workers", "approx_location": false}}]};
+let youthCentreLayer = L.layerGroup();
+let youthCentresVisible = true;
+
+function youthCentrePassesFilter(feature) {
+  return true;
+}
+
+function youthCentrePopupHtml(p) {
+  return `
+    <h3>${p.name} Youth Centre</h3>
+    <table>
+      ${p.address ? `<tr><td class="k">Address</td><td>${p.address}, ${p.postcode || ''}</td></tr>` : ''}
+      ${p.ward ? `<tr><td class="k">Ward</td><td>${p.ward}</td></tr>` : ''}
+      ${p.age_range ? `<tr><td class="k">Age range</td><td>${p.age_range}</td></tr>` : ''}
+      ${p.session_days ? `<tr><td class="k">Sessions</td><td>${p.session_days}</td></tr>` : ''}
+      ${p.focus ? `<tr><td class="k">Focus</td><td>${p.focus}</td></tr>` : ''}
+      ${p.approx_location ? `<tr><td class="k">Location</td><td>Approximate (ward-level - postcode not found)</td></tr>` : ''}
+    </table>
+  `;
+}
+
+function rebuildYouthCentreLayer() {
+  youthCentreLayer.clearLayers();
+  if (!youthCentresVisible) return;
+  YOUTH_CENTRES.features.filter(youthCentrePassesFilter).forEach(feature => {
+    const [lon, lat] = feature.geometry.coordinates;
+    const marker = L.circleMarker([lat, lon], {
+      radius: 7,
+      weight: 1.5,
+      color: '#880e4f',
+      fillColor: '#f06292',
+      fillOpacity: 0.9,
+      dashArray: feature.properties.approx_location ? '2,2' : null,
+    });
+    marker.bindPopup(youthCentrePopupHtml(feature.properties));
+    marker.addTo(youthCentreLayer);
+  });
+}
+
+document.getElementById('youthCentresToggle').addEventListener('change', e => {
+  youthCentresVisible = e.target.checked;
+  if (youthCentresVisible) youthCentreLayer.addTo(map);
+  else map.removeLayer(youthCentreLayer);
+  rebuildYouthCentreLayer();
+});
+
+if (YOUTH_CENTRES.features.length) {
+  document.getElementById('youthCentresFieldset').style.display = '';
+  document.getElementById('youthCentresCount').textContent = YOUTH_CENTRES.features.length;
+  rebuildYouthCentreLayer();
+  youthCentreLayer.addTo(map);
 }
 </script>
 </body>

@@ -263,6 +263,57 @@ def build_pitch_features_from_inventory(rows, school_features):
     return features, unmatched
 
 
+# The youth centres CSV has postcodes but no coordinates. Looked up via
+# public UK postcode lookup (postcode-unit centroid, i.e. accurate to a
+# handful of neighbouring addresses). LE2 6LE (Kingfisher) couldn't be found
+# this way, so it falls back to the Eyres Monsell ward centroid instead -
+# `approx=True` flags that one as coarser than the rest.
+YOUTH_CENTRE_POSTCODE_COORDS = {
+    "LE4 6JD": (52.650907, -1.120608, False),
+    "LE5 1HF": (52.645462, -1.061196, False),
+    "LE3 6RJ": (52.6445, -1.1808, False),
+    "LE1 2PD": (52.639506, -1.120452, False),
+    "LE2 6LE": (52.590578, -1.145732, True),
+}
+
+
+def load_youth_centre_rows(csv_path):
+    with open(csv_path, encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            yield row
+
+
+def build_youth_centre_features(rows):
+    features = []
+    unmatched = []
+    for row in rows:
+        name = (row.get("Youth Centre") or "").strip()
+        postcode = (row.get("Postcode") or "").strip()
+        if not name:
+            continue
+        coords = YOUTH_CENTRE_POSTCODE_COORDS.get(postcode)
+        if coords is None:
+            unmatched.append(name)
+            continue
+        lat, lon, approx = coords
+
+        props = {
+            "name": name,
+            "address": row.get("Address"),
+            "postcode": postcode,
+            "ward": row.get("Likely Ward (unverified - see note)"),
+            "age_range": row.get("Age Range"),
+            "session_days": row.get("Session Days"),
+            "focus": row.get("Focus/Notes"),
+            "approx_location": approx,
+        }
+        features.append(
+            {"type": "Feature", "geometry": {"type": "Point", "coordinates": [lon, lat]}, "properties": props}
+        )
+    return features, unmatched
+
+
 VENDOR_DIR = Path(__file__).parent / "vendor"
 
 HTML_TEMPLATE = """<!DOCTYPE html>
@@ -335,6 +386,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <fieldset id="pitchesFieldset" style="display:none;">
       <legend>Football pitches</legend>
       <label><input type="checkbox" id="pitchesToggle" checked> Show pitches (<span id="pitchesCount"></span>)</label>
+    </fieldset>
+
+    <fieldset id="youthCentresFieldset" style="display:none;">
+      <legend>Youth centres</legend>
+      <label><input type="checkbox" id="youthCentresToggle" checked> Show youth centres (<span id="youthCentresCount"></span>)</label>
     </fieldset>
 
     <footer>
@@ -673,16 +729,72 @@ if (PITCHES.features.length) {
   rebuildPitchLayer();
   pitchLayer.addTo(map);
 }
+
+// ---- Youth centres overlay ----
+const YOUTH_CENTRES = __YOUTH_CENTRES_GEOJSON__;
+let youthCentreLayer = L.layerGroup();
+let youthCentresVisible = true;
+
+function youthCentrePassesFilter(feature) {
+  return true;
+}
+
+function youthCentrePopupHtml(p) {
+  return `
+    <h3>${p.name} Youth Centre</h3>
+    <table>
+      ${p.address ? `<tr><td class="k">Address</td><td>${p.address}, ${p.postcode || ''}</td></tr>` : ''}
+      ${p.ward ? `<tr><td class="k">Ward</td><td>${p.ward}</td></tr>` : ''}
+      ${p.age_range ? `<tr><td class="k">Age range</td><td>${p.age_range}</td></tr>` : ''}
+      ${p.session_days ? `<tr><td class="k">Sessions</td><td>${p.session_days}</td></tr>` : ''}
+      ${p.focus ? `<tr><td class="k">Focus</td><td>${p.focus}</td></tr>` : ''}
+      ${p.approx_location ? `<tr><td class="k">Location</td><td>Approximate (ward-level - postcode not found)</td></tr>` : ''}
+    </table>
+  `;
+}
+
+function rebuildYouthCentreLayer() {
+  youthCentreLayer.clearLayers();
+  if (!youthCentresVisible) return;
+  YOUTH_CENTRES.features.filter(youthCentrePassesFilter).forEach(feature => {
+    const [lon, lat] = feature.geometry.coordinates;
+    const marker = L.circleMarker([lat, lon], {
+      radius: 7,
+      weight: 1.5,
+      color: '#880e4f',
+      fillColor: '#f06292',
+      fillOpacity: 0.9,
+      dashArray: feature.properties.approx_location ? '2,2' : null,
+    });
+    marker.bindPopup(youthCentrePopupHtml(feature.properties));
+    marker.addTo(youthCentreLayer);
+  });
+}
+
+document.getElementById('youthCentresToggle').addEventListener('change', e => {
+  youthCentresVisible = e.target.checked;
+  if (youthCentresVisible) youthCentreLayer.addTo(map);
+  else map.removeLayer(youthCentreLayer);
+  rebuildYouthCentreLayer();
+});
+
+if (YOUTH_CENTRES.features.length) {
+  document.getElementById('youthCentresFieldset').style.display = '';
+  document.getElementById('youthCentresCount').textContent = YOUTH_CENTRES.features.length;
+  rebuildYouthCentreLayer();
+  youthCentreLayer.addTo(map);
+}
 </script>
 </body>
 </html>
 """
 
 
-def build_html(features, school_features=None, pitch_features=None):
+def build_html(features, school_features=None, pitch_features=None, youth_centre_features=None):
     geojson = {"type": "FeatureCollection", "features": features}
     schools_geojson = {"type": "FeatureCollection", "features": school_features or []}
     pitches_geojson = {"type": "FeatureCollection", "features": pitch_features or []}
+    youth_centres_geojson = {"type": "FeatureCollection", "features": youth_centre_features or []}
     leaflet_js = (VENDOR_DIR / "leaflet.js").read_text(encoding="utf-8")
     leaflet_css = (VENDOR_DIR / "leaflet.css").read_text(encoding="utf-8")
     html = HTML_TEMPLATE.replace("__GEOJSON__", json.dumps(geojson))
@@ -694,6 +806,7 @@ def build_html(features, school_features=None, pitch_features=None):
     html = html.replace("__SCHOOL_CATEGORY_COLOURS__", json.dumps(SCHOOL_CATEGORY_COLOURS))
     html = html.replace("__SCHOOL_DEFAULT_COLOUR__", SCHOOL_DEFAULT_COLOUR)
     html = html.replace("__PITCHES_GEOJSON__", json.dumps(pitches_geojson))
+    html = html.replace("__YOUTH_CENTRES_GEOJSON__", json.dumps(youth_centres_geojson))
     return html
 
 
@@ -706,6 +819,11 @@ def main():
         type=Path,
         help="Football pitches: either a by-site inventory CSV (Site Name, Pitch Type, ...) "
         "matched against --schools by name, or a GeoJSON with coordinates already present",
+    )
+    parser.add_argument(
+        "--youth-centres",
+        type=Path,
+        help="Youth centres CSV (Youth Centre, Address, Postcode, ...) matched to coordinates by postcode",
     )
     parser.add_argument("--outdir", default=Path("output"), type=Path)
     args = parser.parse_args()
@@ -732,7 +850,13 @@ def main():
             pitch_geojson = json.loads(args.pitches.read_text(encoding="utf-8"))
             pitch_features = pitch_geojson.get("features", [])
 
-    html = build_html(features, school_features, pitch_features)
+    youth_centre_features = []
+    unmatched_youth_centres = []
+    if args.youth_centres:
+        youth_centre_rows = list(load_youth_centre_rows(args.youth_centres))
+        youth_centre_features, unmatched_youth_centres = build_youth_centre_features(youth_centre_rows)
+
+    html = build_html(features, school_features, pitch_features, youth_centre_features)
     out_html = args.outdir / "leicester_idaci_interactive_map.html"
     out_html.write_text(html, encoding="utf-8")
 
@@ -762,6 +886,18 @@ def main():
     if unmatched_sites:
         print(f"Warning: {len(unmatched_sites)} pitch sites have no known location and were skipped:")
         for s in unmatched_sites:
+            print(f"  - {s}")
+    if youth_centre_features:
+        out_youth = args.outdir / "leicester_youth_centres.geojson"
+        out_youth.write_text(
+            json.dumps({"type": "FeatureCollection", "features": youth_centre_features}, indent=None),
+            encoding="utf-8",
+        )
+        print(f"Parsed {len(youth_centre_features)} youth centres")
+        print(f"Wrote {out_youth}")
+    if unmatched_youth_centres:
+        print(f"Warning: {len(unmatched_youth_centres)} youth centres have no known location and were skipped:")
+        for s in unmatched_youth_centres:
             print(f"  - {s}")
     print(f"Wrote {out_html}")
     print(f"Wrote {out_geojson}")
