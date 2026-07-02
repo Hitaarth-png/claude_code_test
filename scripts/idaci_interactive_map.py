@@ -314,6 +314,49 @@ def build_youth_centre_features(rows):
     return features, unmatched
 
 
+# Social mobility partners CSV has organisation-level notes, not
+# coordinates. Only organisations with a specific Leicester address can be
+# plotted; others (e.g. national charities that deliver only through
+# unnamed local partners) are reported as skipped rather than guessed.
+SOCIAL_MOBILITY_PARTNER_COORDS = {
+    "Leicestershire Cares": (52.627183, -1.129334, "42 Tower Street, Leicester, LE1 6WT"),
+}
+
+
+def load_social_mobility_partner_rows(csv_path):
+    with open(csv_path, encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            yield row
+
+
+def build_social_mobility_partner_features(rows):
+    features = []
+    unmatched = []
+    for row in rows:
+        name = (row.get("Organisation") or "").strip()
+        if not name:
+            continue
+        coords = SOCIAL_MOBILITY_PARTNER_COORDS.get(name)
+        if coords is None:
+            unmatched.append(name)
+            continue
+        lat, lon, address = coords
+
+        props = {
+            "name": name,
+            "type": row.get("Type"),
+            "scope": row.get("Geographic Scope"),
+            "focus": row.get("Focus Area"),
+            "notes": row.get("Notes"),
+            "address": address,
+        }
+        features.append(
+            {"type": "Feature", "geometry": {"type": "Point", "coordinates": [lon, lat]}, "properties": props}
+        )
+    return features, unmatched
+
+
 VENDOR_DIR = Path(__file__).parent / "vendor"
 
 HTML_TEMPLATE = """<!DOCTYPE html>
@@ -391,6 +434,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <fieldset id="youthCentresFieldset" style="display:none;">
       <legend>Youth centres</legend>
       <label><input type="checkbox" id="youthCentresToggle" checked> Show youth centres (<span id="youthCentresCount"></span>)</label>
+    </fieldset>
+
+    <fieldset id="socialMobilityFieldset" style="display:none;">
+      <legend>Social mobility partners</legend>
+      <label><input type="checkbox" id="socialMobilityToggle" checked> Show partners (<span id="socialMobilityCount"></span>)</label>
     </fieldset>
 
     <footer>
@@ -784,17 +832,73 @@ if (YOUTH_CENTRES.features.length) {
   rebuildYouthCentreLayer();
   youthCentreLayer.addTo(map);
 }
+
+// ---- Social mobility partners overlay ----
+const SOCIAL_MOBILITY_PARTNERS = __SOCIAL_MOBILITY_PARTNERS_GEOJSON__;
+let socialMobilityLayer = L.layerGroup();
+let socialMobilityVisible = true;
+
+function socialMobilityPopupHtml(p) {
+  return `
+    <h3>${p.name}</h3>
+    <table>
+      ${p.type ? `<tr><td class="k">Type</td><td>${p.type}</td></tr>` : ''}
+      ${p.address ? `<tr><td class="k">Address</td><td>${p.address}</td></tr>` : ''}
+      ${p.scope ? `<tr><td class="k">Geographic scope</td><td>${p.scope}</td></tr>` : ''}
+      ${p.focus ? `<tr><td class="k">Focus</td><td>${p.focus}</td></tr>` : ''}
+      ${p.notes ? `<tr><td class="k">Notes</td><td>${p.notes}</td></tr>` : ''}
+    </table>
+  `;
+}
+
+function rebuildSocialMobilityLayer() {
+  socialMobilityLayer.clearLayers();
+  if (!socialMobilityVisible) return;
+  SOCIAL_MOBILITY_PARTNERS.features.forEach(feature => {
+    const [lon, lat] = feature.geometry.coordinates;
+    const marker = L.circleMarker([lat, lon], {
+      radius: 7,
+      weight: 1.5,
+      color: '#4a148c',
+      fillColor: '#9c64d8',
+      fillOpacity: 0.9,
+    });
+    marker.bindPopup(socialMobilityPopupHtml(feature.properties));
+    marker.addTo(socialMobilityLayer);
+  });
+}
+
+document.getElementById('socialMobilityToggle').addEventListener('change', e => {
+  socialMobilityVisible = e.target.checked;
+  if (socialMobilityVisible) socialMobilityLayer.addTo(map);
+  else map.removeLayer(socialMobilityLayer);
+  rebuildSocialMobilityLayer();
+});
+
+if (SOCIAL_MOBILITY_PARTNERS.features.length) {
+  document.getElementById('socialMobilityFieldset').style.display = '';
+  document.getElementById('socialMobilityCount').textContent = SOCIAL_MOBILITY_PARTNERS.features.length;
+  rebuildSocialMobilityLayer();
+  socialMobilityLayer.addTo(map);
+}
 </script>
 </body>
 </html>
 """
 
 
-def build_html(features, school_features=None, pitch_features=None, youth_centre_features=None):
+def build_html(
+    features,
+    school_features=None,
+    pitch_features=None,
+    youth_centre_features=None,
+    social_mobility_partner_features=None,
+):
     geojson = {"type": "FeatureCollection", "features": features}
     schools_geojson = {"type": "FeatureCollection", "features": school_features or []}
     pitches_geojson = {"type": "FeatureCollection", "features": pitch_features or []}
     youth_centres_geojson = {"type": "FeatureCollection", "features": youth_centre_features or []}
+    social_mobility_geojson = {"type": "FeatureCollection", "features": social_mobility_partner_features or []}
     leaflet_js = (VENDOR_DIR / "leaflet.js").read_text(encoding="utf-8")
     leaflet_css = (VENDOR_DIR / "leaflet.css").read_text(encoding="utf-8")
     html = HTML_TEMPLATE.replace("__GEOJSON__", json.dumps(geojson))
@@ -807,6 +911,7 @@ def build_html(features, school_features=None, pitch_features=None, youth_centre
     html = html.replace("__SCHOOL_DEFAULT_COLOUR__", SCHOOL_DEFAULT_COLOUR)
     html = html.replace("__PITCHES_GEOJSON__", json.dumps(pitches_geojson))
     html = html.replace("__YOUTH_CENTRES_GEOJSON__", json.dumps(youth_centres_geojson))
+    html = html.replace("__SOCIAL_MOBILITY_PARTNERS_GEOJSON__", json.dumps(social_mobility_geojson))
     return html
 
 
@@ -824,6 +929,11 @@ def main():
         "--youth-centres",
         type=Path,
         help="Youth centres CSV (Youth Centre, Address, Postcode, ...) matched to coordinates by postcode",
+    )
+    parser.add_argument(
+        "--social-mobility-partners",
+        type=Path,
+        help="Social mobility partners CSV (Organisation, Type, Geographic Scope, ...) matched by organisation name",
     )
     parser.add_argument("--outdir", default=Path("output"), type=Path)
     args = parser.parse_args()
@@ -856,7 +966,13 @@ def main():
         youth_centre_rows = list(load_youth_centre_rows(args.youth_centres))
         youth_centre_features, unmatched_youth_centres = build_youth_centre_features(youth_centre_rows)
 
-    html = build_html(features, school_features, pitch_features, youth_centre_features)
+    social_mobility_features = []
+    unmatched_partners = []
+    if args.social_mobility_partners:
+        partner_rows = list(load_social_mobility_partner_rows(args.social_mobility_partners))
+        social_mobility_features, unmatched_partners = build_social_mobility_partner_features(partner_rows)
+
+    html = build_html(features, school_features, pitch_features, youth_centre_features, social_mobility_features)
     out_html = args.outdir / "leicester_idaci_interactive_map.html"
     out_html.write_text(html, encoding="utf-8")
 
@@ -898,6 +1014,18 @@ def main():
     if unmatched_youth_centres:
         print(f"Warning: {len(unmatched_youth_centres)} youth centres have no known location and were skipped:")
         for s in unmatched_youth_centres:
+            print(f"  - {s}")
+    if social_mobility_features:
+        out_partners = args.outdir / "leicester_social_mobility_partners.geojson"
+        out_partners.write_text(
+            json.dumps({"type": "FeatureCollection", "features": social_mobility_features}, indent=None),
+            encoding="utf-8",
+        )
+        print(f"Parsed {len(social_mobility_features)} social mobility partners")
+        print(f"Wrote {out_partners}")
+    if unmatched_partners:
+        print(f"Warning: {len(unmatched_partners)} social mobility partners have no known location and were skipped:")
+        for s in unmatched_partners:
             print(f"  - {s}")
     print(f"Wrote {out_html}")
     print(f"Wrote {out_geojson}")

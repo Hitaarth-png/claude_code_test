@@ -741,6 +741,11 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <label><input type="checkbox" id="youthCentresToggle" checked> Show youth centres (<span id="youthCentresCount"></span>)</label>
     </fieldset>
 
+    <fieldset id="socialMobilityFieldset" style="display:none;">
+      <legend>Social mobility partners</legend>
+      <label><input type="checkbox" id="socialMobilityToggle" checked> Show partners (<span id="socialMobilityCount"></span>)</label>
+    </fieldset>
+
     <footer>
       Source: 2025 English Indices of Deprivation (IDACI sub-domain), ONS mid-2022 population estimates.
       Schools: DfE Get Information about Schools (GIAS) extract.
@@ -1131,6 +1136,55 @@ if (YOUTH_CENTRES.features.length) {
   document.getElementById('youthCentresCount').textContent = YOUTH_CENTRES.features.length;
   rebuildYouthCentreLayer();
   youthCentreLayer.addTo(map);
+}
+
+// ---- Social mobility partners overlay ----
+const SOCIAL_MOBILITY_PARTNERS = {"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": {"type": "Point", "coordinates": [-1.129334, 52.627183]}, "properties": {"name": "Leicestershire Cares", "type": "Charity - business/community brokerage", "scope": "City and county-wide (Leicester, Leicestershire, Rutland) - not tied to a single ward", "focus": "Employability & social mobility", "notes": "Pairs business volunteers with schools/colleges for CV workshops, mock interviews, workplace visits; also runs dedicated projects for care-experienced young people (Powering Up, Joining Up Joining In) and youth justice (Violence Intervention Project). Based at 42 Tower Street, Leicester, LE1 6WT.", "address": "42 Tower Street, Leicester, LE1 6WT"}}]};
+let socialMobilityLayer = L.layerGroup();
+let socialMobilityVisible = true;
+
+function socialMobilityPopupHtml(p) {
+  return `
+    <h3>${p.name}</h3>
+    <table>
+      ${p.type ? `<tr><td class="k">Type</td><td>${p.type}</td></tr>` : ''}
+      ${p.address ? `<tr><td class="k">Address</td><td>${p.address}</td></tr>` : ''}
+      ${p.scope ? `<tr><td class="k">Geographic scope</td><td>${p.scope}</td></tr>` : ''}
+      ${p.focus ? `<tr><td class="k">Focus</td><td>${p.focus}</td></tr>` : ''}
+      ${p.notes ? `<tr><td class="k">Notes</td><td>${p.notes}</td></tr>` : ''}
+    </table>
+  `;
+}
+
+function rebuildSocialMobilityLayer() {
+  socialMobilityLayer.clearLayers();
+  if (!socialMobilityVisible) return;
+  SOCIAL_MOBILITY_PARTNERS.features.forEach(feature => {
+    const [lon, lat] = feature.geometry.coordinates;
+    const marker = L.circleMarker([lat, lon], {
+      radius: 7,
+      weight: 1.5,
+      color: '#4a148c',
+      fillColor: '#9c64d8',
+      fillOpacity: 0.9,
+    });
+    marker.bindPopup(socialMobilityPopupHtml(feature.properties));
+    marker.addTo(socialMobilityLayer);
+  });
+}
+
+document.getElementById('socialMobilityToggle').addEventListener('change', e => {
+  socialMobilityVisible = e.target.checked;
+  if (socialMobilityVisible) socialMobilityLayer.addTo(map);
+  else map.removeLayer(socialMobilityLayer);
+  rebuildSocialMobilityLayer();
+});
+
+if (SOCIAL_MOBILITY_PARTNERS.features.length) {
+  document.getElementById('socialMobilityFieldset').style.display = '';
+  document.getElementById('socialMobilityCount').textContent = SOCIAL_MOBILITY_PARTNERS.features.length;
+  rebuildSocialMobilityLayer();
+  socialMobilityLayer.addTo(map);
 }
 </script>
 </body>
