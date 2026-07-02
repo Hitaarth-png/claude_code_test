@@ -47,12 +47,12 @@ SCHOOL_CATEGORY_COLOURS = {
     "Children's Centres": "#ff7f00",
     "Independent schools": "#6a3d9a",
     "Special schools": "#e31a1c",
-    "Free Schools": "#b15928",
-    "Colleges": "#a6cee3",
-    "Universities": "#fb9a99",
-    "Other types": "#999999",
 }
 SCHOOL_DEFAULT_COLOUR = "#666666"
+
+# Categories excluded from the schools overlay entirely - not the day-to-day
+# youth-facing provision this map is focused on.
+EXCLUDED_SCHOOL_CATEGORIES = {"Free Schools", "Colleges", "Universities", "Other types"}
 
 
 def to_float(v):
@@ -177,6 +177,10 @@ def build_school_features(rows):
         if not status.startswith("Open"):
             continue
 
+        category = row.get("EstablishmentTypeGroup (name)") or "Other types"
+        if category in EXCLUDED_SCHOOL_CATEGORIES:
+            continue
+
         easting = to_float(row.get("Easting"))
         northing = to_float(row.get("Northing"))
         if easting is None or northing is None:
@@ -192,7 +196,6 @@ def build_school_features(rows):
         ]
         address = ", ".join(p for p in address_parts if p)
 
-        category = row.get("EstablishmentTypeGroup (name)") or "Other types"
         pupils = to_int(row.get("NumberOfPupils"))
         pct_fsm = to_float(row.get("PercentageFSM"))
 
@@ -529,7 +532,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
     <fieldset id="pointsFieldset">
       <legend>Points</legend>
-      <label><input type="checkbox" id="allPointsToggle" checked> <strong>Show all points</strong></label>
 
       <div class="point-group" id="schoolsGroup">
         <label><input type="checkbox" id="schoolsToggle" checked> Schools (<span id="schoolsCount"></span>)</label>
@@ -1061,17 +1063,6 @@ if (SOCIAL_MOBILITY_PARTNERS.features.length) {
   socialMobilityLayer.addTo(map);
 }
 
-// ---- "Show all points" master toggle ----
-document.getElementById('allPointsToggle').addEventListener('change', e => {
-  const checked = e.target.checked;
-  ['schoolsToggle', 'pitchesToggle', 'footballProvidersToggle', 'youthCentresToggle', 'socialMobilityToggle'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el && el.checked !== checked) {
-      el.checked = checked;
-      el.dispatchEvent(new Event('change'));
-    }
-  });
-});
 </script>
 </body>
 </html>
