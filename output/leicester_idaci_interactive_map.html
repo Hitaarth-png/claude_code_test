@@ -710,13 +710,14 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <p class="subtitle">Income Deprivation Affecting Children Index (IDACI), 2025 Indices of Deprivation &mdash; by Lower-layer Super Output Area (LSOA)</p>
 
     <fieldset>
-      <legend>Shade areas by</legend>
-      <label><input type="radio" name="metric" value="idaci_decile" checked> IDACI decile (1 = most deprived children)</label>
-      <label><input type="radio" name="metric" value="imd_decile"> Overall IMD decile</label>
-      <label><input type="radio" name="metric" value="pct_children_0015"> % of population aged 0&ndash;15</label>
-      <label><input type="radio" name="metric" value="pop_0015"> Number of young people aged 0&ndash;15</label>
-      <label><input type="radio" name="metric" value="year6_obesity_pct"> Year 6 obesity rate (6 MSOAs, exact figures)</label>
-      <label><input type="radio" name="metric" value="year6_obesity_quintile_draft"> Year 6 obesity quintile - DRAFT, unconfirmed (all 38 MSOAs)</label>
+      <legend>Shade areas by (pick 1 or 2)</legend>
+      <p style="font-size:11px; color:#666; margin:0 0 6px;">Picking a 2nd metric blends both into one colour per area (see legend).</p>
+      <label><input type="checkbox" class="metric-cb" value="idaci_decile" checked> IDACI decile (1 = most deprived children)</label>
+      <label><input type="checkbox" class="metric-cb" value="imd_decile"> Overall IMD decile</label>
+      <label><input type="checkbox" class="metric-cb" value="pct_children_0015"> % of population aged 0&ndash;15</label>
+      <label><input type="checkbox" class="metric-cb" value="pop_0015"> Number of young people aged 0&ndash;15</label>
+      <label><input type="checkbox" class="metric-cb" value="year6_obesity_pct"> Year 6 obesity rate (6 MSOAs, exact figures)</label>
+      <label><input type="checkbox" class="metric-cb" value="year6_obesity_quintile_draft"> Year 6 obesity quintile - DRAFT, unconfirmed (all 38 MSOAs)</label>
     </fieldset>
 
     <fieldset>
@@ -781,7 +782,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
 
-let currentMetric = 'idaci_decile';
+let selectedMetrics = ['idaci_decile'];
 
 function colourForDecile(v) {
   if (v === null || v === undefined) return NO_DATA_COLOUR;
@@ -797,8 +798,6 @@ function colourForRange(v, min, max) {
   return stops[idx];
 }
 
-const CONTINUOUS_METRICS = ['pct_children_0015', 'pop_0015', 'year6_obesity_pct'];
-
 function computeRange(prop) {
   const vals = DATA.features.map(f => f.properties[prop]).filter(v => v !== null && v !== undefined);
   return vals.length ? { min: Math.min(...vals), max: Math.max(...vals) } : { min: 0, max: 100 };
@@ -810,19 +809,51 @@ let obesityRange = computeRange('year6_obesity_pct');
 
 const YEAR6_OBESITY_QUINTILE_COLOURS = { 1: '#eff3ff', 2: '#bdd7e7', 3: '#6baed6', 4: '#3182bd', 5: '#08519c' };
 
+// Metadata driving both the bivariate blend (low/high bounds to bin into
+// terciles) and its legend (axis end labels). Decile/quintile metrics use
+// their fixed natural scale; continuous metrics use the actual data range.
+const METRIC_INFO = {
+  idaci_decile: { label: 'IDACI decile', low: 1, high: 10, lowLabel: 'Most deprived', highLabel: 'Least deprived' },
+  imd_decile: { label: 'IMD decile', low: 1, high: 10, lowLabel: 'Most deprived', highLabel: 'Least deprived' },
+  pct_children_0015: { label: '% aged 0-15', low: pctRange.min, high: pctRange.max, lowLabel: 'Fewest', highLabel: 'Most' },
+  pop_0015: { label: 'Number aged 0-15', low: pop0015Range.min, high: pop0015Range.max, lowLabel: 'Fewest', highLabel: 'Most' },
+  year6_obesity_pct: { label: 'Year 6 obesity %', low: obesityRange.min, high: obesityRange.max, lowLabel: 'Lower', highLabel: 'Higher' },
+  year6_obesity_quintile_draft: { label: 'Year 6 obesity quintile (draft)', low: 1, high: 5, lowLabel: 'Lower', highLabel: 'Higher' },
+};
+
+// Classic 3x3 bivariate palette (teal / purple), rows = metric B tercile
+// (0=low..2=high), cols = metric A tercile (0=low..2=high).
+const BIVARIATE_PALETTE = [
+  ['#e8e8e8', '#ace4e4', '#5ac8c8'],
+  ['#dfb0d6', '#a5add3', '#5698b9'],
+  ['#be64ac', '#8c62aa', '#3b4994'],
+];
+
+function getTercile(key, value) {
+  if (value === null || value === undefined) return null;
+  const { low, high } = METRIC_INFO[key];
+  const t = high > low ? (value - low) / (high - low) : 0;
+  return Math.min(2, Math.max(0, Math.floor(t * 3)));
+}
+
+function singleMetricColour(key, p) {
+  if (key === 'pct_children_0015') return colourForRange(p.pct_children_0015, pctRange.min, pctRange.max);
+  if (key === 'pop_0015') return colourForRange(p.pop_0015, pop0015Range.min, pop0015Range.max);
+  if (key === 'year6_obesity_pct') return colourForRange(p.year6_obesity_pct, obesityRange.min, obesityRange.max);
+  if (key === 'year6_obesity_quintile_draft') return YEAR6_OBESITY_QUINTILE_COLOURS[p.year6_obesity_quintile_draft] || NO_DATA_COLOUR;
+  return colourForDecile(p[key]);
+}
+
 function styleFor(feature) {
   const p = feature.properties;
   let fill;
-  if (currentMetric === 'pct_children_0015') {
-    fill = colourForRange(p.pct_children_0015, pctRange.min, pctRange.max);
-  } else if (currentMetric === 'pop_0015') {
-    fill = colourForRange(p.pop_0015, pop0015Range.min, pop0015Range.max);
-  } else if (currentMetric === 'year6_obesity_pct') {
-    fill = colourForRange(p.year6_obesity_pct, obesityRange.min, obesityRange.max);
-  } else if (currentMetric === 'year6_obesity_quintile_draft') {
-    fill = YEAR6_OBESITY_QUINTILE_COLOURS[p.year6_obesity_quintile_draft] || NO_DATA_COLOUR;
+  if (selectedMetrics.length === 2) {
+    const [keyA, keyB] = selectedMetrics;
+    const ta = getTercile(keyA, p[keyA]);
+    const tb = getTercile(keyB, p[keyB]);
+    fill = (ta === null || tb === null) ? NO_DATA_COLOUR : BIVARIATE_PALETTE[tb][ta];
   } else {
-    fill = colourForDecile(p[currentMetric]);
+    fill = singleMetricColour(selectedMetrics[0], p);
   }
   return { fillColor: fill, weight: 1, color: '#555', fillOpacity: 0.75 };
 }
@@ -887,9 +918,8 @@ function updateSummary() {
   `;
 }
 
-function renderLegend() {
-  const el = document.getElementById('legend');
-  if (currentMetric === 'pct_children_0015') {
+function renderSingleLegend(el, key) {
+  if (key === 'pct_children_0015') {
     el.innerHTML = `
       <div class="legend-row"><span class="legend-swatch" style="background:#ffffe5"></span>${pctRange.min.toFixed(0)}% (fewest children)</div>
       <div class="legend-row"><span class="legend-swatch" style="background:#fb6a4a"></span>mid-range</div>
@@ -897,7 +927,7 @@ function renderLegend() {
     `;
     return;
   }
-  if (currentMetric === 'pop_0015') {
+  if (key === 'pop_0015') {
     el.innerHTML = `
       <div class="legend-row"><span class="legend-swatch" style="background:#ffffe5"></span>${pop0015Range.min} young people (fewest)</div>
       <div class="legend-row"><span class="legend-swatch" style="background:#fb6a4a"></span>mid-range</div>
@@ -905,7 +935,7 @@ function renderLegend() {
     `;
     return;
   }
-  if (currentMetric === 'year6_obesity_pct') {
+  if (key === 'year6_obesity_pct') {
     el.innerHTML = `
       <div class="legend-row"><span class="legend-swatch" style="background:#ffffe5"></span>${obesityRange.min}% (lowest of the 6)</div>
       <div class="legend-row"><span class="legend-swatch" style="background:#fb6a4a"></span>mid-range</div>
@@ -914,7 +944,7 @@ function renderLegend() {
     `;
     return;
   }
-  if (currentMetric === 'year6_obesity_quintile_draft') {
+  if (key === 'year6_obesity_quintile_draft') {
     el.innerHTML = `
       <div style="font-size:11px; color:#a33; font-weight:600; margin-bottom:4px;">DRAFT - unconfirmed estimate, not official figures</div>
       <div class="legend-row"><span class="legend-swatch" style="background:${YEAR6_OBESITY_QUINTILE_COLOURS[1]}"></span>Quintile 1 (lowest prevalence)</div>
@@ -933,9 +963,51 @@ function renderLegend() {
   el.innerHTML = rows;
 }
 
-document.querySelectorAll('input[name=metric]').forEach(el => {
-  el.addEventListener('change', e => {
-    currentMetric = e.target.value;
+function renderBivariateLegend(el, keyA, keyB) {
+  const a = METRIC_INFO[keyA];
+  const b = METRIC_INFO[keyB];
+  let grid = '<div style="display:grid; grid-template-columns:repeat(3,18px); gap:2px; margin:6px 0;">';
+  for (let row = 2; row >= 0; row--) {
+    for (let col = 0; col < 3; col++) {
+      grid += `<div style="width:18px;height:18px;background:${BIVARIATE_PALETTE[row][col]};border:1px solid rgba(0,0,0,0.2);"></div>`;
+    }
+  }
+  grid += '</div>';
+  el.innerHTML = `
+    <div style="font-size:12px; margin-bottom:4px;"><b>${a.label}</b> &rarr;<br>${a.lowLabel} to ${a.highLabel}</div>
+    ${grid}
+    <div style="font-size:12px;"><b>${b.label}</b> &uarr;<br>${b.lowLabel} to ${b.highLabel}</div>
+    <div class="legend-row" style="margin-top:8px;"><span class="legend-swatch" style="background:${NO_DATA_COLOUR}"></span>No data in either metric</div>
+    ${keyA === 'year6_obesity_quintile_draft' || keyB === 'year6_obesity_quintile_draft' ? '<div style="font-size:11px; color:#a33; font-weight:600; margin-top:4px;">Obesity quintile is a DRAFT, unconfirmed estimate</div>' : ''}
+  `;
+}
+
+function renderLegend() {
+  const el = document.getElementById('legend');
+  if (selectedMetrics.length === 2) {
+    renderBivariateLegend(el, selectedMetrics[0], selectedMetrics[1]);
+  } else {
+    renderSingleLegend(el, selectedMetrics[0]);
+  }
+}
+
+document.querySelectorAll('.metric-cb').forEach(cb => {
+  cb.addEventListener('change', e => {
+    const val = e.target.value;
+    if (e.target.checked) {
+      selectedMetrics.push(val);
+      if (selectedMetrics.length > 2) {
+        const removed = selectedMetrics.shift();
+        const removedCb = document.querySelector(`.metric-cb[value="${removed}"]`);
+        if (removedCb) removedCb.checked = false;
+      }
+    } else if (selectedMetrics.length === 1) {
+      // always keep at least one metric selected
+      e.target.checked = true;
+      return;
+    } else {
+      selectedMetrics = selectedMetrics.filter(m => m !== val);
+    }
     renderLegend();
     rebuildLayer();
   });
