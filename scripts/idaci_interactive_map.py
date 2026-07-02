@@ -33,6 +33,13 @@ DECILE_COLOURS = {
 }
 NO_DATA_COLOUR = "#cccccc"
 
+# Total number of LSOAs in England (2021 Census geography) that IDACI ranks
+# are drawn from - used to convert a rank into a national percentile.
+# Derived from this dataset's own decile boundaries (rank cutoffs are only
+# consistent with a total of 33,755), cross-checked against the published
+# 2021 LSOA count for England.
+ENGLAND_LSOA_COUNT = 33755
+
 # Colours per GIAS "EstablishmentTypeGroup", used for the schools overlay.
 SCHOOL_CATEGORY_COLOURS = {
     "Academies": "#1f78b4",
@@ -95,6 +102,11 @@ def build_features(rows):
                 else None
             ),
             "idaci_rank": to_int(row.get("IDACI_rank")),
+            "idaci_percentile": (
+                round(to_int(row.get("IDACI_rank")) / ENGLAND_LSOA_COUNT * 100, 1)
+                if to_int(row.get("IDACI_rank")) is not None
+                else None
+            ),
             "idaci_decile": to_int(row.get("IDACI_decile")),
             "idaci_quintile": to_int(row.get("IDACI_quintile")),
             "imd_score": to_float(row.get("IMD2025_score")),
@@ -515,7 +527,7 @@ function popupHtml(p) {
       <tr><td class="k">MSOA</td><td>${p.msoa_name || '&ndash;'}</td></tr>
       <tr><td class="k">IDACI score (% children income-deprived)</td><td>${fmt(p.idaci_score, '%')}</td></tr>
       <tr><td class="k">IDACI decile</td><td>${fmt(p.idaci_decile)} (1=most deprived)</td></tr>
-      <tr><td class="k">IDACI rank (nationally)</td><td>${fmt(p.idaci_rank)}</td></tr>
+      <tr><td class="k">IDACI national percentile</td><td>${p.idaci_percentile !== null && p.idaci_percentile !== undefined ? 'Most deprived ' + p.idaci_percentile + '% nationally' : 'no data'}</td></tr>
       <tr><td class="k">Overall IMD decile</td><td>${fmt(p.imd_decile)}</td></tr>
       <tr><td class="k">Population 0&ndash;15</td><td>${fmt(p.pop_0015)} (${fmt(p.pct_children_0015, '%')} of area)</td></tr>
       <tr><td class="k">Total population</td><td>${fmt(p.pop_total)}</td></tr>
