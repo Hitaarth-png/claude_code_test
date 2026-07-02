@@ -121,6 +121,38 @@ def build_features(rows):
     return features
 
 
+def build_ward_boundaries(features):
+    """Dissolve LSOA polygons into one outline per administrative ward, for
+    a distinct ward-boundary overlay (LSOAs are the smallest unit the source
+    data carries geometry for; wards are drawn by merging their LSOAs)."""
+    from collections import defaultdict
+
+    from shapely.geometry import mapping, shape
+    from shapely.ops import unary_union
+
+    by_ward = defaultdict(list)
+    for f in features:
+        ward = f["properties"].get("ward")
+        if not ward:
+            continue
+        try:
+            by_ward[ward].append(shape(f["geometry"]))
+        except (ValueError, TypeError):
+            continue
+
+    ward_features = []
+    for ward, geoms in by_ward.items():
+        merged = unary_union(geoms).buffer(0)
+        ward_features.append(
+            {
+                "type": "Feature",
+                "geometry": mapping(merged),
+                "properties": {"ward": ward, "lsoa_count": len(geoms)},
+            }
+        )
+    return ward_features
+
+
 def load_school_rows(csv_path):
     with open(csv_path, encoding="utf-8-sig", newline="") as f:
         reader = csv.DictReader(f)
@@ -423,6 +455,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <fieldset>
       <legend>Filter by ward</legend>
       <select id="wardFilter"><option value="">All wards</option></select>
+      <label style="margin-top:8px;"><input type="checkbox" id="wardBoundariesToggle" checked> Show ward boundaries</label>
     </fieldset>
 
     <fieldset>
@@ -619,6 +652,7 @@ const wardSelect = document.getElementById('wardFilter');
 wardSelect.addEventListener('change', e => {
   currentWard = e.target.value;
   rebuildLayer();
+  if (map.hasLayer(wardBoundaryLayer)) wardBoundaryLayer.bringToFront();
   rebuildSchoolLayer();
   rebuildPitchLayer();
   if (currentWard) {
@@ -636,6 +670,22 @@ wardSelect.addEventListener('change', e => {
 renderLegend();
 rebuildLayer();
 map.fitBounds(L.geoJSON(DATA).getBounds());
+
+// ---- Ward boundaries overlay ----
+// Outline-only, non-interactive (interactive: false) so it sits visually on
+// top of the LSOA choropleth without swallowing clicks meant for it.
+const WARD_BOUNDARIES = __WARD_BOUNDARIES_GEOJSON__;
+let wardBoundaryLayer = L.geoJSON(WARD_BOUNDARIES, {
+  interactive: false,
+  style: { color: '#1a1a1a', weight: 2.5, opacity: 0.85, fill: false },
+});
+if (WARD_BOUNDARIES.features.length) {
+  wardBoundaryLayer.addTo(map);
+}
+document.getElementById('wardBoundariesToggle').addEventListener('change', e => {
+  if (e.target.checked) wardBoundaryLayer.addTo(map);
+  else map.removeLayer(wardBoundaryLayer);
+});
 
 // ---- Schools overlay ----
 const SCHOOLS = __SCHOOLS_GEOJSON__;
@@ -905,12 +955,14 @@ def build_html(
     pitch_features=None,
     youth_centre_features=None,
     social_mobility_partner_features=None,
+    ward_boundary_features=None,
 ):
     geojson = {"type": "FeatureCollection", "features": features}
     schools_geojson = {"type": "FeatureCollection", "features": school_features or []}
     pitches_geojson = {"type": "FeatureCollection", "features": pitch_features or []}
     youth_centres_geojson = {"type": "FeatureCollection", "features": youth_centre_features or []}
     social_mobility_geojson = {"type": "FeatureCollection", "features": social_mobility_partner_features or []}
+    ward_boundaries_geojson = {"type": "FeatureCollection", "features": ward_boundary_features or []}
     leaflet_js = (VENDOR_DIR / "leaflet.js").read_text(encoding="utf-8")
     leaflet_css = (VENDOR_DIR / "leaflet.css").read_text(encoding="utf-8")
     html = HTML_TEMPLATE.replace("__GEOJSON__", json.dumps(geojson))
@@ -924,6 +976,7 @@ def build_html(
     html = html.replace("__PITCHES_GEOJSON__", json.dumps(pitches_geojson))
     html = html.replace("__YOUTH_CENTRES_GEOJSON__", json.dumps(youth_centres_geojson))
     html = html.replace("__SOCIAL_MOBILITY_PARTNERS_GEOJSON__", json.dumps(social_mobility_geojson))
+    html = html.replace("__WARD_BOUNDARIES_GEOJSON__", json.dumps(ward_boundaries_geojson))
     return html
 
 
@@ -984,7 +1037,16 @@ def main():
         partner_rows = list(load_social_mobility_partner_rows(args.social_mobility_partners))
         social_mobility_features, unmatched_partners = build_social_mobility_partner_features(partner_rows)
 
-    html = build_html(features, school_features, pitch_features, youth_centre_features, social_mobility_features)
+    ward_boundary_features = build_ward_boundaries(features)
+
+    html = build_html(
+        features,
+        school_features,
+        pitch_features,
+        youth_centre_features,
+        social_mobility_features,
+        ward_boundary_features,
+    )
     out_html = args.outdir / "leicester_idaci_interactive_map.html"
     out_html.write_text(html, encoding="utf-8")
 
@@ -995,6 +1057,13 @@ def main():
     )
 
     print(f"Parsed {len(features)} LSOAs")
+    out_wards = args.outdir / "leicester_ward_boundaries.geojson"
+    out_wards.write_text(
+        json.dumps({"type": "FeatureCollection", "features": ward_boundary_features}, indent=None),
+        encoding="utf-8",
+    )
+    print(f"Dissolved {len(ward_boundary_features)} ward boundaries")
+    print(f"Wrote {out_wards}")
     if school_features:
         out_schools = args.outdir / "leicester_schools.geojson"
         out_schools.write_text(
