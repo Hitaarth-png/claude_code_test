@@ -55,6 +55,56 @@ YEAR6_OBESITY_PCT_BY_MSOA = {
     "Knighton": 16.3,
 }
 
+# DRAFT / UNCONFIRMED. Year 6 obesity quintile (1 = lowest prevalence, 5 =
+# highest) per MSOA, for all 38 MSOAs. Only 6 of these are grounded in an
+# exact reported percentage (see YEAR6_OBESITY_PCT_BY_MSOA above); the rest
+# are an eyeballed first-attempt estimate, positioned by matching an OHID
+# Fingertips quintile-map screenshot (no area labels) against our own MSOA
+# boundaries, combined with the NCMP report's stated pattern (prevalence
+# highest in the Northwest, lowest in the East/Southeast). This should be
+# replaced with exact Fingertips figures once available - do not treat as
+# authoritative.
+YEAR6_OBESITY_QUINTILE_DRAFT = {
+    "Kirby Frith": 5,
+    "Newfoundpool": 5,
+    "Bradgate Heights & Beaumont Leys": 5,
+    "Stocking Farm & Mowmacre": 5,
+    "Beaumont Park": 5,
+    "Dane Hills & Western Park": 5,
+    "New Parks & Stokeswood": 5,
+    "Abbey Park": 4,
+    "West End & Westcotes": 4,
+    "Braunstone Park East": 4,
+    "Braunstone Park West": 4,
+    "Rowley Fields & Faircharm": 4,
+    "Aylestone North & Saffron Fields": 4,
+    "Leicester City Centre": 4,
+    "Aylestone South": 3,
+    "Eyres Monsell": 3,
+    "Leicester City South": 3,
+    "Saffron Lane": 3,
+    "Humberstone & Hamilton South": 3,
+    "Rushey Mead North": 3,
+    "Rushey Mead South": 3,
+    "Thurnby Lodge": 3,
+    "Belgrave North West": 2,
+    "Colchester Road": 2,
+    "Hamilton North": 2,
+    "Highfields South": 2,
+    "North Evington & Rowlatts Hill": 2,
+    "Northfields & Merrydale": 2,
+    "Spinney Hill Road": 2,
+    "West Knighton": 2,
+    "Belgrave South": 1,
+    "Belgrave North East": 1,
+    "Clarendon Park & Stoneygate South": 1,
+    "Crown Hills": 1,
+    "Evington": 1,
+    "Knighton": 1,
+    "St Matthews & Highfields North": 1,
+    "Stoneygate North": 1,
+}
+
 # Colours per GIAS "EstablishmentTypeGroup", used for the schools overlay.
 SCHOOL_CATEGORY_COLOURS = {
     "Academies": "#1f78b4",
@@ -112,6 +162,7 @@ def build_features(rows):
             "ward": row.get("Ward Name"),
             "msoa_name": msoa_name,
             "year6_obesity_pct": YEAR6_OBESITY_PCT_BY_MSOA.get(msoa_name),
+            "year6_obesity_quintile_draft": YEAR6_OBESITY_QUINTILE_DRAFT.get(msoa_name),
             "parliamentary_constituency": row.get("Parliamentary Constituency"),
             "idaci_score": (
                 round(to_float(row.get("IDACI_score")) * 100, 1)
@@ -534,7 +585,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       <label><input type="radio" name="metric" value="imd_decile"> Overall IMD decile</label>
       <label><input type="radio" name="metric" value="pct_children_0015"> % of population aged 0&ndash;15</label>
       <label><input type="radio" name="metric" value="pop_0015"> Number of young people aged 0&ndash;15</label>
-      <label><input type="radio" name="metric" value="year6_obesity_pct"> Year 6 obesity rate (6 MSOAs only)</label>
+      <label><input type="radio" name="metric" value="year6_obesity_pct"> Year 6 obesity rate (6 MSOAs, exact figures)</label>
+      <label><input type="radio" name="metric" value="year6_obesity_quintile_draft"> Year 6 obesity quintile - DRAFT, unconfirmed (all 38 MSOAs)</label>
     </fieldset>
 
     <fieldset>
@@ -580,6 +632,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       Schools: DfE Get Information about Schools (GIAS) extract.
       Pitches: Leicester playing pitches by site audit; dashed outline = plotted at a matched school's grounds (approximate).
       Year 6 obesity: Leicester City Council NCMP 2023/24 report, 3-year average by MSOA - only the 6 MSOAs the report gives an exact figure for; applied to all LSOAs within that MSOA.
+      Year 6 obesity quintile is a DRAFT, unconfirmed estimate for all 38 MSOAs (eyeballed against an OHID Fingertips quintile map with no area labels, cross-checked with the 6 exact figures and the report's stated geographic pattern) - treat as indicative only, pending verification against exact source data.
       Deciles: 1 = most deprived 10% of LSOAs nationally, 10 = least deprived.
       Click an area, school or pitch for details.
     </footer>
@@ -625,6 +678,8 @@ let pctRange = computeRange('pct_children_0015');
 let pop0015Range = computeRange('pop_0015');
 let obesityRange = computeRange('year6_obesity_pct');
 
+const YEAR6_OBESITY_QUINTILE_COLOURS = { 1: '#eff3ff', 2: '#bdd7e7', 3: '#6baed6', 4: '#3182bd', 5: '#08519c' };
+
 function styleFor(feature) {
   const p = feature.properties;
   let fill;
@@ -634,6 +689,8 @@ function styleFor(feature) {
     fill = colourForRange(p.pop_0015, pop0015Range.min, pop0015Range.max);
   } else if (currentMetric === 'year6_obesity_pct') {
     fill = colourForRange(p.year6_obesity_pct, obesityRange.min, obesityRange.max);
+  } else if (currentMetric === 'year6_obesity_quintile_draft') {
+    fill = YEAR6_OBESITY_QUINTILE_COLOURS[p.year6_obesity_quintile_draft] || NO_DATA_COLOUR;
   } else {
     fill = colourForDecile(p[currentMetric]);
   }
@@ -658,6 +715,7 @@ function popupHtml(p) {
       <tr><td class="k">Population 0&ndash;15</td><td>${fmt(p.pop_0015)} (${fmt(p.pct_children_0015, '%')} of area)</td></tr>
       <tr><td class="k">Total population</td><td>${fmt(p.pop_total)}</td></tr>
       ${p.year6_obesity_pct !== null && p.year6_obesity_pct !== undefined ? `<tr><td class="k">Year 6 obesity rate (MSOA, NCMP 23/24)</td><td>${p.year6_obesity_pct}%</td></tr>` : ''}
+      ${p.year6_obesity_quintile_draft ? `<tr><td class="k">Year 6 obesity quintile (DRAFT, unconfirmed)</td><td>${p.year6_obesity_quintile_draft} of 5${p.year6_obesity_pct ? ' (based on exact figure)' : ' (eyeballed estimate)'}</td></tr>` : ''}
     </table>
   `;
 }
@@ -723,6 +781,17 @@ function renderLegend() {
       <div class="legend-row"><span class="legend-swatch" style="background:#fb6a4a"></span>mid-range</div>
       <div class="legend-row"><span class="legend-swatch" style="background:#67000d"></span>${obesityRange.max}% (highest of the 6)</div>
       <div class="legend-row"><span class="legend-swatch" style="background:${NO_DATA_COLOUR}"></span>No data (32 of 38 MSOAs)</div>
+    `;
+    return;
+  }
+  if (currentMetric === 'year6_obesity_quintile_draft') {
+    el.innerHTML = `
+      <div style="font-size:11px; color:#a33; font-weight:600; margin-bottom:4px;">DRAFT - unconfirmed estimate, not official figures</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:${YEAR6_OBESITY_QUINTILE_COLOURS[1]}"></span>Quintile 1 (lowest prevalence)</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:${YEAR6_OBESITY_QUINTILE_COLOURS[2]}"></span>Quintile 2</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:${YEAR6_OBESITY_QUINTILE_COLOURS[3]}"></span>Quintile 3</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:${YEAR6_OBESITY_QUINTILE_COLOURS[4]}"></span>Quintile 4</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:${YEAR6_OBESITY_QUINTILE_COLOURS[5]}"></span>Quintile 5 (highest prevalence)</div>
     `;
     return;
   }
