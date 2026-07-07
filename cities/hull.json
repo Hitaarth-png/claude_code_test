@@ -1,0 +1,9 @@
+{
+  "name": "Hull",
+  "slug": "hull",
+  "lad_code": "E06000010",
+  "inputs": {
+    "_note": "Built from GitHub mirrors as per cities/manchester.json. Schools/pitches not yet sourced - ward readiness disabled."
+  },
+  "curated": {}
+}

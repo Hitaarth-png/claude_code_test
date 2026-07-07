@@ -1,0 +1,9 @@
+{
+  "name": "Bradford",
+  "slug": "bradford",
+  "lad_code": "E08000032",
+  "inputs": {
+    "_note": "Built from GitHub mirrors as per cities/manchester.json. Schools/pitches not yet sourced - ward readiness disabled."
+  },
+  "curated": {}
+}
