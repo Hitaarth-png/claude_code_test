@@ -97,3 +97,17 @@ the official releases. Exact provenance (repo, path, vintage) is recorded in
 releases before external publication.
 
 <!-- SOURCES-FINALISED-AFTER-FETCH -->
+
+---
+
+## 7. v1 implementation notes (2026-07)
+
+Implemented in `scripts/ward_readiness.py` (reads only the committed
+`output/*.geojson`; rerun `scripts/idaci_interactive_map.py` via
+`rebuild_from_outputs()` to refresh the HTML). Demand uses the full D1–D3 set
+(the LSOA extract carries `pop_0015`). Readiness uses S1 + S3 only — S2
+(sports halls) and S4 (green space) have no data coverage yet and are dropped
+from the mean, recorded per ward in the `readiness_indicators` column. The
+boundary buffer is 400 m at half weight. Getis–Ord Gi* is deferred to a later
+pass. Layer shipped on `output/leicester_idaci_interactive_map.html` as
+"Ward readiness layer (v1)".

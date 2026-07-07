@@ -597,6 +597,18 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     </fieldset>
 
     <fieldset>
+      <legend>Ward readiness layer (v1)</legend>
+      <label><input type="radio" name="wardMetric" value="off" checked> Off (LSOA view)</label>
+      <label><input type="radio" name="wardMetric" value="demand_index"> Demand index</label>
+      <label><input type="radio" name="wardMetric" value="readiness_index"> Infrastructure readiness index</label>
+      <label><input type="radio" name="wardMetric" value="quadrant"> Cold-spot quadrant</label>
+      <div id="wardLegend" class="subsection-list"></div>
+      <p style="font-size:11px;color:#666;margin:6px 0 0;">Demand = z-mean of children 0&ndash;15 (D1), youth density (D2), IDACI (D3).
+      Readiness = z-mean of pitch sites (S1) &amp; schools (S3) per 1,000 children; sports halls (S2) and green space (S4) pending data.
+      Quadrants split at the median of each index. See METHODOLOGY.md.</p>
+    </fieldset>
+
+    <fieldset>
       <legend>Legend</legend>
       <div id="legend"></div>
     </fieldset>
@@ -771,6 +783,7 @@ function rebuildLayer() {
       });
     }
   }).addTo(map);
+  if (window.wardMetric && window.wardMetric !== 'off') map.removeLayer(geoLayer);
   updateSummary();
 }
 
@@ -1238,6 +1251,104 @@ if (SOCIAL_MOBILITY_PARTNERS.features.length) {
   socialMobilityLayer.addTo(map);
 }
 
+// ---- Ward infrastructure readiness layer (see METHODOLOGY.md) ----
+const WARD_READINESS = __WARD_READINESS_GEOJSON__;
+// Red/blue pairing (colour-blind safe): red = act here, blue = supplied.
+const QUADRANT_COLOURS = { Q1: '#ca0020', Q2: '#f4a582', Q3: '#92c5de', Q4: '#e0e0e0' };
+const WARD_RAMPS = {
+  demand_index: ["#ffffe5", "#fee0d2", "#fcbba1", "#fc9272", "#fb6a4a", "#ef3b2c", "#cb181d", "#a50f15", "#67000d"],
+  readiness_index: ["#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#08519c", "#08306b"],
+};
+window.wardMetric = 'off';
+let wardReadinessLayer = null;
+
+function wardIndexRange(key) {
+  const vals = WARD_READINESS.features.map(f => f.properties[key]);
+  return { min: Math.min(...vals), max: Math.max(...vals) };
+}
+
+function wardColour(p) {
+  if (window.wardMetric === 'quadrant') return QUADRANT_COLOURS[p.quadrant] || NO_DATA_COLOUR;
+  const key = window.wardMetric;
+  const { min, max } = wardIndexRange(key);
+  const stops = WARD_RAMPS[key];
+  const t = max > min ? (p[key] - min) / (max - min) : 0;
+  return stops[Math.min(stops.length - 1, Math.floor(t * stops.length))];
+}
+
+function wardReadinessPopupHtml(p) {
+  return `
+    <h3>${p.ward}</h3>
+    <table>
+      <tr><td class="k">Quadrant</td><td><b>${p.quadrant_label}</b> (${p.quadrant})</td></tr>
+      <tr><td class="k">What this means</td><td>${p.quadrant_action}</td></tr>
+      <tr><td class="k">Demand index</td><td>${p.demand_index} (z-score mean)</td></tr>
+      <tr><td class="k">Readiness index</td><td>${p.readiness_index} (z-score mean)</td></tr>
+      <tr><td class="k">Children 0&ndash;15 (D1)</td><td>${p.d1_pop_0015}</td></tr>
+      <tr><td class="k">Youth density (D2)</td><td>${p.d2_youth_density_km2} per km&sup2;</td></tr>
+      <tr><td class="k">IDACI, pop-weighted (D3)</td><td>${p.d3_idaci_popweighted}%</td></tr>
+      <tr><td class="k">Pitch sites / 1,000 children (S1)</td><td>${p.s1_pitches_per_1k_children} (${p.pitch_sites_weighted} sites, capacity ${p.pitch_capacity_weighted} teams)</td></tr>
+      <tr><td class="k">Schools / 1,000 children (S3)</td><td>${p.s3_schools_per_1k_children} (${p.schools_weighted} schools)</td></tr>
+      <tr><td class="k">Indicators used</td><td>${p.readiness_indicators} (S2, S4 pending data)</td></tr>
+    </table>
+  `;
+}
+
+function renderWardLegend() {
+  const el = document.getElementById('wardLegend');
+  if (window.wardMetric === 'off') { el.innerHTML = ''; return; }
+  if (window.wardMetric === 'quadrant') {
+    const counts = {};
+    WARD_READINESS.features.forEach(f => { counts[f.properties.quadrant] = (counts[f.properties.quadrant] || 0) + 1; });
+    el.innerHTML = ['Q1', 'Q2', 'Q3', 'Q4'].map(q => {
+      const lbl = { Q1: 'Cold spot - priority', Q2: 'Activate existing assets', Q3: 'Comfortable / saturated', Q4: 'Monitor' }[q];
+      return `<div class="legend-row"><span class="legend-swatch" style="background:${QUADRANT_COLOURS[q]}"></span>${q}: ${lbl} (${counts[q] || 0})</div>`;
+    }).join('');
+    return;
+  }
+  const stops = WARD_RAMPS[window.wardMetric];
+  const hiLabel = window.wardMetric === 'demand_index' ? 'Highest need' : 'Best equipped';
+  const loLabel = window.wardMetric === 'demand_index' ? 'Lowest need' : 'Least equipped';
+  el.innerHTML = `
+    <div class="legend-row"><span class="legend-swatch" style="background:${stops[0]}"></span>${loLabel}</div>
+    <div class="legend-row"><span class="legend-swatch" style="background:${stops[4]}"></span>mid-range</div>
+    <div class="legend-row"><span class="legend-swatch" style="background:${stops[8]}"></span>${hiLabel}</div>
+  `;
+}
+
+function rebuildWardReadinessLayer() {
+  if (wardReadinessLayer) { map.removeLayer(wardReadinessLayer); wardReadinessLayer = null; }
+  if (window.wardMetric === 'off') {
+    if (!map.hasLayer(geoLayer)) geoLayer.addTo(map);
+    renderWardLegend();
+    return;
+  }
+  if (map.hasLayer(geoLayer)) map.removeLayer(geoLayer);
+  wardReadinessLayer = L.geoJSON(WARD_READINESS, {
+    style: f => ({ fillColor: wardColour(f.properties), weight: 1.5, color: '#333', fillOpacity: 0.8 }),
+    onEachFeature: (feature, layer) => {
+      layer.bindPopup(wardReadinessPopupHtml(feature.properties));
+      layer.on({
+        mouseover: e => e.target.setStyle({ weight: 3, color: '#000' }),
+        mouseout: e => wardReadinessLayer.resetStyle(e.target),
+      });
+    },
+  }).addTo(map);
+  if (map.hasLayer(wardBoundaryLayer)) wardBoundaryLayer.bringToFront();
+  renderWardLegend();
+}
+
+document.querySelectorAll('input[name="wardMetric"]').forEach(rb => {
+  rb.addEventListener('change', e => {
+    if (!e.target.checked) return;
+    window.wardMetric = e.target.value;
+    rebuildWardReadinessLayer();
+  });
+});
+if (!WARD_READINESS.features.length) {
+  document.querySelectorAll('input[name="wardMetric"]').forEach(rb => { rb.disabled = true; });
+}
+
 </script>
 </body>
 </html>
@@ -1252,6 +1363,7 @@ def build_html(
     social_mobility_partner_features=None,
     ward_boundary_features=None,
     football_provider_features=None,
+    ward_readiness_features=None,
 ):
     geojson = {"type": "FeatureCollection", "features": features}
     schools_geojson = {"type": "FeatureCollection", "features": school_features or []}
@@ -1275,12 +1387,48 @@ def build_html(
     html = html.replace("__SOCIAL_MOBILITY_PARTNERS_GEOJSON__", json.dumps(social_mobility_geojson))
     html = html.replace("__WARD_BOUNDARIES_GEOJSON__", json.dumps(ward_boundaries_geojson))
     html = html.replace("__FOOTBALL_PROVIDERS_GEOJSON__", json.dumps(football_providers_geojson))
+    ward_readiness_geojson = {"type": "FeatureCollection", "features": ward_readiness_features or []}
+    html = html.replace("__WARD_READINESS_GEOJSON__", json.dumps(ward_readiness_geojson))
     return html
+
+
+def _load_output_features(outdir, name):
+    path = outdir / f"leicester_{name}.geojson"
+    if not path.exists():
+        return []
+    return json.loads(path.read_text(encoding="utf-8")).get("features", [])
+
+
+def rebuild_from_outputs(outdir):
+    """Regenerate the HTML from the committed geojson outputs alone - no
+    source CSVs needed. Lets the map be rebuilt (e.g. after adding the ward
+    readiness layer) from what is in the repo."""
+    features = _load_output_features(outdir, "idaci_lsoa")
+    if not features:
+        raise SystemExit(f"No LSOA features found in {outdir}/leicester_idaci_lsoa.geojson")
+    html = build_html(
+        features,
+        school_features=_load_output_features(outdir, "schools"),
+        pitch_features=_load_output_features(outdir, "pitches"),
+        youth_centre_features=_load_output_features(outdir, "youth_centres"),
+        social_mobility_partner_features=_load_output_features(outdir, "social_mobility_partners"),
+        ward_boundary_features=_load_output_features(outdir, "ward_boundaries"),
+        football_provider_features=_load_output_features(outdir, "football_providers"),
+        ward_readiness_features=_load_output_features(outdir, "ward_readiness"),
+    )
+    out_html = outdir / "leicester_idaci_interactive_map.html"
+    out_html.write_text(html, encoding="utf-8")
+    print(f"Rebuilt {out_html} from {outdir}/*.geojson")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", required=True, type=Path, help="Deprivation-in-Leicester CSV")
+    parser.add_argument(
+        "--from-outputs",
+        action="store_true",
+        help="Rebuild the HTML from the geojson files already in --outdir instead of source CSVs",
+    )
+    parser.add_argument("--input", type=Path, help="Deprivation-in-Leicester CSV (required unless --from-outputs)")
     parser.add_argument("--schools", type=Path, help="GIAS (Get Information about Schools) establishment export CSV")
     parser.add_argument(
         "--pitches",
