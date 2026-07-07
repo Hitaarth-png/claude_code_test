@@ -2,3 +2,5 @@ pandas
 geopandas
 shapely
 matplotlib
+folium
+requests
