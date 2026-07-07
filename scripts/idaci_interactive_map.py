@@ -602,6 +602,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       <label><input type="radio" name="wardMetric" value="demand_index"> Demand index</label>
       <label><input type="radio" name="wardMetric" value="readiness_index"> Infrastructure readiness index</label>
       <label><input type="radio" name="wardMetric" value="quadrant"> Cold-spot quadrant</label>
+      <label><input type="radio" name="wardMetric" value="gap_w"> Football provision gap</label>
       <div id="wardLegend" class="subsection-list"></div>
       <p style="font-size:11px;color:#666;margin:6px 0 0;">Demand = z-mean of children 0&ndash;15 (D1), youth density (D2), IDACI (D3).
       Readiness = z-mean of pitch sites (S1) &amp; schools (S3) per 1,000 children; sports halls (S2) and green space (S4) pending data.
@@ -1258,6 +1259,8 @@ const QUADRANT_COLOURS = { Q1: '#ca0020', Q2: '#f4a582', Q3: '#92c5de', Q4: '#e0
 const WARD_RAMPS = {
   demand_index: ["#ffffe5", "#fee0d2", "#fcbba1", "#fc9272", "#fb6a4a", "#ef3b2c", "#cb181d", "#a50f15", "#67000d"],
   readiness_index: ["#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#08519c", "#08306b"],
+  // diverging, centred on 0: blue = well-served, red = under-served
+  gap_w: ["#0571b0", "#67a9cf", "#d1e5f0", "#f7f7f7", "#fddbc7", "#ef8a62", "#ca0020"],
 };
 window.wardMetric = 'off';
 let wardReadinessLayer = null;
@@ -1269,6 +1272,13 @@ function wardIndexRange(key) {
 
 function wardColour(p) {
   if (window.wardMetric === 'quadrant') return QUADRANT_COLOURS[p.quadrant] || NO_DATA_COLOUR;
+  if (window.wardMetric === 'gap_w') {
+    const stops = WARD_RAMPS.gap_w;
+    const vals = WARD_READINESS.features.map(f => Math.abs(f.properties.gap_w));
+    const ext = Math.max(...vals) || 1;  // symmetric around 0 so white = balanced
+    const t = (p.gap_w + ext) / (2 * ext);
+    return stops[Math.min(stops.length - 1, Math.max(0, Math.floor(t * stops.length)))];
+  }
   const key = window.wardMetric;
   const { min, max } = wardIndexRange(key);
   const stops = WARD_RAMPS[key];
@@ -1304,6 +1314,16 @@ function renderWardLegend() {
       const lbl = { Q1: 'Cold spot - priority', Q2: 'Activate existing assets', Q3: 'Comfortable / saturated', Q4: 'Monitor' }[q];
       return `<div class="legend-row"><span class="legend-swatch" style="background:${QUADRANT_COLOURS[q]}"></span>${q}: ${lbl} (${counts[q] || 0})</div>`;
     }).join('');
+    return;
+  }
+  if (window.wardMetric === 'gap_w') {
+    const s = WARD_RAMPS.gap_w;
+    document.getElementById('wardLegend').innerHTML = `
+      <div class="legend-row"><span class="legend-swatch" style="background:${s[s.length - 1]}"></span>Under-served (more need than supply)</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:${s[3]}"></span>Balanced</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:${s[0]}"></span>Well-served</div>
+      <div style="font-size:11px;color:#a33;margin-top:4px;">Supply = the 14 geolocated pitch sites only; wards with no mapped site may still have informal capacity.</div>
+    `;
     return;
   }
   const stops = WARD_RAMPS[window.wardMetric];

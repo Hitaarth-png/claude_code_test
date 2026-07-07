@@ -139,6 +139,16 @@ def main():
                 r["z_" + k.split("_")[0]] = round(zs[k][i], 3)
             r[out] = round(sum(zs[k][i] for k in keys) / len(keys), 3)
 
+    # ---- Deprivation-weighted football provision (per ward_football_provision.py method) ----
+    mean_idaci = sum(r["d3_idaci_popweighted"] for r in rows) / len(rows)
+    for r in rows:
+        r["need_weighted"] = round(r["d1_pop_0015"] * r["d3_idaci_popweighted"] / mean_idaci, 1)
+    total_need = sum(r["need_weighted"] for r in rows)
+    total_supply = sum(r["pitch_capacity_weighted"] for r in rows)
+    for r in rows:
+        r["provision_per_1k_weighted"] = round(1000 * r["pitch_capacity_weighted"] / r["need_weighted"], 2) if r["need_weighted"] else None
+        r["gap_w"] = round(r["need_weighted"] / total_need - r["pitch_capacity_weighted"] / total_supply, 4)
+
     dmed = median([r["demand_index"] for r in rows])
     rmed = median([r["readiness_index"] for r in rows])
     for r in rows:
