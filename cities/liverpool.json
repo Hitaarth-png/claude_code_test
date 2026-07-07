@@ -1,0 +1,9 @@
+{
+  "name": "Liverpool",
+  "slug": "liverpool",
+  "lad_code": "E08000012",
+  "inputs": {
+    "_note": "Built from GitHub mirrors as per cities/manchester.json (IoD2019 IDACI numerators with <10 suppression imputed at 5, mid-2020 populations, LSOA11/WD13 boundaries). Schools/pitches not yet sourced - ward readiness disabled."
+  },
+  "curated": {}
+}
