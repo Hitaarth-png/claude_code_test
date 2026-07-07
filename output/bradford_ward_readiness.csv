@@ -1,0 +1,31 @@
+ward,d1_pop_0015,d2_youth_density_km2,d3_idaci_popweighted,area_km2,pitch_sites_weighted,pitch_capacity_weighted,schools_weighted,s1_pitches_per_1k_children,s3_schools_per_1k_children,readiness_indicators,z_d1,z_d2,z_d3,demand_index,z_s1,z_s3,readiness_index,need_weighted,provision_per_1k_weighted,gap_w,quadrant,quadrant_label,quadrant_action
+Baildon,2439,189.7,6.8,12.86,0,0,0,0.0,0.0,S3,-1.319,-0.881,-1.466,-1.222,0.0,-1.111,-0.556,841.0,0.0,0.0059,Q4,Monitor,Low current need; revisit as demographics shift
+Bingley,3141,155.7,11.2,20.18,0,0,0,0.0,0.0,S3,-0.81,-0.927,-0.967,-0.901,0.0,-1.111,-0.556,1783.9,0.0,0.0126,Q4,Monitor,Low current need; revisit as demographics shift
+Bingley Rural,3583,98.7,10.6,36.31,0,0,0,0.0,0.0,S3,-0.49,-1.004,-1.035,-0.843,0.0,-1.111,-0.556,1926.0,0.0,0.0136,Q4,Monitor,Low current need; revisit as demographics shift
+Bolton and Undercliffe,5873,1399.8,21.4,4.2,0,0,15.0,0.0,2.55,S3,1.17,0.761,0.191,0.707,0.0,0.769,0.385,6373.3,0.0,0.0449,Q2,Activate existing assets,Fastest wins - demand and infrastructure both present
+Bowling and Barkerend,6399,1060.7,29.8,6.03,0,0,19.0,0.0,2.97,S3,1.552,0.301,1.144,0.999,0.0,1.079,0.54,9669.9,0.0,0.0681,Q2,Activate existing assets,Fastest wins - demand and infrastructure both present
+Bradford Moor,6207,2385.7,28.9,2.6,0,0,12.5,0.0,2.01,S3,1.413,2.098,1.042,1.517,0.0,0.371,0.185,9096.5,0.0,0.0641,Q2,Activate existing assets,Fastest wins - demand and infrastructure both present
+City,6448,1379.6,24.0,4.67,0,0,15.5,0.0,2.4,S3,1.587,0.733,0.486,0.935,0.0,0.659,0.329,7847.5,0.0,0.0553,Q2,Activate existing assets,Fastest wins - demand and infrastructure both present
+Clayton and Fairweather Green,4605,768.7,22.4,5.99,0,0,11.0,0.0,2.39,S3,0.251,-0.095,0.304,0.153,0.0,0.651,0.326,5230.8,0.0,0.0368,Q2,Activate existing assets,Fastest wins - demand and infrastructure both present
+Craven,2903,58.0,5.7,50.07,0,0,0,0.0,0.0,S3,-0.983,-1.059,-1.591,-1.211,0.0,-1.111,-0.556,839.1,0.0,0.0059,Q4,Monitor,Low current need; revisit as demographics shift
+Eccleshill,4826,1240.0,28.8,3.89,0,0,11.5,0.0,2.38,S3,0.411,0.544,1.031,0.662,0.0,0.644,0.322,7048.1,0.0,0.0496,Q2,Activate existing assets,Fastest wins - demand and infrastructure both present
+Great Horton,5261,1597.6,27.5,3.29,0,0,16.5,0.0,3.14,S3,0.727,1.029,0.883,0.88,0.0,1.204,0.602,7336.6,0.0,0.0517,Q2,Activate existing assets,Fastest wins - demand and infrastructure both present
+Heaton,5165,934.9,21.2,5.52,0,0,11.5,0.0,2.23,S3,0.657,0.13,0.168,0.318,0.0,0.533,0.267,5552.6,0.0,0.0391,Q2,Activate existing assets,Fastest wins - demand and infrastructure both present
+Idle and Thackley,3612,398.8,10.3,9.06,0,0,5.5,0.0,1.52,S3,-0.469,-0.597,-1.069,-0.712,0.0,0.01,0.005,1886.6,0.0,0.0133,Q4,Monitor,Low current need; revisit as demographics shift
+Ilkley,2471,130.8,4.4,18.89,0,0,0,0.0,0.0,S3,-1.296,-0.961,-1.739,-1.332,0.0,-1.111,-0.556,551.3,0.0,0.0039,Q4,Monitor,Low current need; revisit as demographics shift
+Keighley Central,4603,755.4,23.4,6.09,0,0,0,0.0,0.0,S3,0.25,-0.113,0.418,0.185,0.0,-1.111,-0.556,5462.0,0.0,0.0385,Q1,Cold spot - priority,Highest expansion priority; needs venue investment/partnerships before programmes can scale
+Keighley East,3754,164.1,18.4,22.88,0,0,0,0.0,0.0,S3,-0.366,-0.915,-0.15,-0.477,0.0,-1.111,-0.556,3502.7,0.0,0.0247,Q4,Monitor,Low current need; revisit as demographics shift
+Keighley West,3795,498.9,28.6,7.61,0,0,0,0.0,0.0,S3,-0.336,-0.461,1.008,0.07,0.0,-1.111,-0.556,5503.9,0.0,0.0388,Q4,Monitor,Low current need; revisit as demographics shift
+Little Horton,7127,2681.0,27.9,2.66,0,0,21.5,0.0,3.02,S3,2.079,2.498,0.928,1.835,0.0,1.116,0.558,10083.3,0.0,0.071,Q2,Activate existing assets,Fastest wins - demand and infrastructure both present
+Manningham,4126,1643.8,31.5,2.51,0,0,22.0,0.0,5.33,S3,-0.096,1.092,1.337,0.778,0.0,2.82,1.41,6590.7,0.0,0.0464,Q2,Activate existing assets,Fastest wins - demand and infrastructure both present
+Queensbury,3280,329.9,12.0,9.94,0,0,2.0,0.0,0.61,S3,-0.709,-0.69,-0.876,-0.759,0.0,-0.662,-0.331,1995.9,0.0,0.0141,Q4,Monitor,Low current need; revisit as demographics shift
+Royds,5049,1029.8,29.3,4.9,0,0,8.5,0.0,1.68,S3,0.573,0.259,1.087,0.64,0.0,0.128,0.064,7501.8,0.0,0.0528,Q2,Activate existing assets,Fastest wins - demand and infrastructure both present
+Shipley,2670,494.7,12.2,5.4,0,0,2.5,0.0,0.94,S3,-1.152,-0.467,-0.853,-0.824,0.0,-0.418,-0.209,1651.8,0.0,0.0116,Q4,Monitor,Low current need; revisit as demographics shift
+Thornton and Allerton,4391,307.6,23.1,14.28,0,0,5.5,0.0,1.25,S3,0.096,-0.721,0.384,-0.08,0.0,-0.19,-0.095,5143.6,0.0,0.0362,Q4,Monitor,Low current need; revisit as demographics shift
+Toller,5645,2516.2,23.4,2.24,0,0,13.5,0.0,2.39,S3,1.005,2.275,0.418,1.233,0.0,0.651,0.326,6698.4,0.0,0.0472,Q2,Activate existing assets,Fastest wins - demand and infrastructure both present
+Tong,5983,412.5,31.9,14.5,0,0,12.0,0.0,2.01,S3,1.25,-0.578,1.382,0.685,0.0,0.371,0.185,9678.4,0.0,0.0682,Q2,Activate existing assets,Fastest wins - demand and infrastructure both present
+Wharfedale,2331,146.3,3.2,15.93,0,0,0,0.0,0.0,S3,-1.397,-0.939,-1.875,-1.404,0.0,-1.111,-0.556,378.3,0.0,0.0027,Q4,Monitor,Low current need; revisit as demographics shift
+Wibsey,3366,1163.4,24.6,2.89,0,0,10.5,0.0,3.12,S3,-0.647,0.44,0.554,0.116,0.0,1.19,0.595,4199.0,0.0,0.0296,Q2,Activate existing assets,Fastest wins - demand and infrastructure both present
+Windhill and Wrose,3543,830.8,21.9,4.26,0,0,9.0,0.0,2.54,S3,-0.519,-0.011,0.247,-0.094,0.0,0.762,0.381,3934.7,0.0,0.0277,Q3,Comfortable / saturated,Low priority; existing capacity likely serves current need
+Worth Valley,2411,40.9,7.7,58.98,0,0,0,0.0,0.0,S3,-1.339,-1.082,-1.364,-1.262,0.0,-1.111,-0.556,941.4,0.0,0.0066,Q4,Monitor,Low current need; revisit as demographics shift
+Wyke,2748,354.9,19.5,7.74,0,0,2.0,0.0,0.73,S3,-1.095,-0.657,-0.025,-0.592,0.0,-0.573,-0.287,2717.3,0.0,0.0191,Q4,Monitor,Low current need; revisit as demographics shift
