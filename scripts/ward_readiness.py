@@ -129,7 +129,7 @@ def main():
         r["schools_weighted"] = n_school
         r["s1_pitches_per_1k_children"] = round(n_pitch / per_k, 2) if per_k else None
         r["s3_schools_per_1k_children"] = round(n_school / per_k, 2) if per_k else None
-        r["readiness_indicators"] = "S1,S3"  # S2,S4 dropped: no data coverage yet
+        r["readiness_indicators"] = "S1,S3" if pitches else "S3"  # S2,S4 dropped: no data coverage yet
 
     # ---- Indices ----
     for keys, out in ((["d1_pop_0015", "d2_youth_density_km2", "d3_idaci_popweighted"], "demand_index"),
@@ -148,7 +148,8 @@ def main():
     total_supply = sum(r["pitch_capacity_weighted"] for r in rows)
     for r in rows:
         r["provision_per_1k_weighted"] = round(1000 * r["pitch_capacity_weighted"] / r["need_weighted"], 2) if r["need_weighted"] else None
-        r["gap_w"] = round(r["need_weighted"] / total_need - r["pitch_capacity_weighted"] / total_supply, 4)
+        supply_share = r["pitch_capacity_weighted"] / total_supply if total_supply else 0
+        r["gap_w"] = round(r["need_weighted"] / total_need - supply_share, 4)
 
     dmed = median([r["demand_index"] for r in rows])
     rmed = median([r["readiness_index"] for r in rows])
