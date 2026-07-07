@@ -1429,6 +1429,9 @@ function wardReadinessPopupHtml(p) {
       <tr><td class="k">IDACI, pop-weighted (D3)</td><td>${p.d3_idaci_popweighted}%</td></tr>
       <tr><td class="k">Pitch sites / 1,000 children (S1)</td><td>${p.s1_pitches_per_1k_children} (${p.pitch_sites_weighted} sites, capacity ${p.pitch_capacity_weighted} teams)</td></tr>
       <tr><td class="k">Schools / 1,000 children (S3)</td><td>${p.s3_schools_per_1k_children} (${p.schools_weighted} schools)</td></tr>
+      <tr><td class="k">Weighted need (children &times; IDACI multiplier)</td><td>${p.need_weighted}</td></tr>
+      <tr><td class="k">Provision (capacity / 1,000 weighted children)</td><td>${p.provision_per_1k_weighted}</td></tr>
+      <tr><td class="k">Provision gap (need share &minus; supply share)</td><td>${(p.gap_w * 100).toFixed(1)}pp ${p.gap_w > 0 ? '(under-served)' : '(well-served)'}</td></tr>
       <tr><td class="k">Indicators used</td><td>${p.readiness_indicators} (S2, S4 pending data)</td></tr>
     </table>
   `;
