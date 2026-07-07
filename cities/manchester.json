@@ -1,0 +1,9 @@
+{
+  "name": "Manchester",
+  "slug": "manchester",
+  "lad_code": "E08000003",
+  "inputs": {
+    "_note": "LSOA geojsons were built from GitHub mirrors (humaniverse/IMD IoD2019 numerators, humaniverse/demographr mid-2020 populations, martinjc/UK-GeoJSON LSOA11/WD13 boundaries) because gov.uk/ONS are unreachable from this environment. IDACI rate = suppressed-imputed numerator / children 0-15, ranked nationally. Schools/pitches/youth-centre inputs not yet sourced - ward readiness disabled until they are."
+  },
+  "curated": {}
+}
