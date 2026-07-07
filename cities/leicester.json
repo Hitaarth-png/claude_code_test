@@ -1,0 +1,126 @@
+{
+  "name": "Leicester",
+  "slug": "leicester",
+  "lad_code": "E06000016",
+  "inputs": {
+    "idaci_csv": "data/<deprivation-extract>.csv",
+    "schools_csv": "data/<gias-export>.csv",
+    "pitches_csv": "data/<pitch-audit>.csv",
+    "youth_centres_csv": "data/<youth-centres>.csv",
+    "social_mobility_partners_csv": "data/<partners>.csv",
+    "football_providers_csv": "data/<providers>.csv"
+  },
+  "curated": {
+    "pitch_site_to_school": {
+      "Babington Community College": [
+        "Babington Academy",
+        false
+      ],
+      "Beamont Leys School": [
+        "Beaumont Leys School",
+        false
+      ],
+      "Beamont Lodge Primary School": [
+        "Beaumont Lodge Primary School",
+        false
+      ],
+      "Crown Hills School": [
+        "Crown Hills Community College",
+        false
+      ],
+      "English Martyrs School": [
+        "English Martyrs' Catholic School, A Voluntary Academy",
+        false
+      ],
+      "Fulhurst Community College": [
+        "Fullhurst Community College",
+        false
+      ],
+      "Gateway College": [
+        "Gateway Sixth Form College",
+        false
+      ],
+      "Heatherbrook Primary School": [
+        "Heatherbrook Primary Academy",
+        false
+      ],
+      "Judgemeadow School": [
+        "Judgemeadow Community College",
+        false
+      ],
+      "Soar Valley College": [
+        "Soar Valley College",
+        false
+      ],
+      "St Pauls Catholic School": [
+        "St Paul's Catholic School, a Voluntary Academy",
+        false
+      ],
+      "The Lancaster School": [
+        "Lancaster Academy",
+        false
+      ],
+      "Wyggeston and QE College": [
+        "WQE and Regent College Group",
+        false
+      ],
+      "Rushey Mead School Stadium": [
+        "Rushey Mead Academy",
+        true
+      ],
+      "Willowbrook Primary School": [
+        "Willowbrook Mead Primary Academy",
+        true
+      ]
+    },
+    "youth_centre_postcode_coords": {
+      "LE4 6JD": [
+        52.650907,
+        -1.120608,
+        false
+      ],
+      "LE5 1HF": [
+        52.645462,
+        -1.061196,
+        false
+      ],
+      "LE3 6RJ": [
+        52.6445,
+        -1.1808,
+        false
+      ],
+      "LE1 2PD": [
+        52.639506,
+        -1.120452,
+        false
+      ],
+      "LE2 6LE": [
+        52.590578,
+        -1.145732,
+        true
+      ]
+    },
+    "social_mobility_partner_coords": {
+      "Leicestershire Cares": [
+        52.627183,
+        -1.129334,
+        "42 Tower Street, Leicester, LE1 6WT"
+      ]
+    },
+    "football_provider_to_school": {
+      "AFC Leicester Ladies and Girls": "Babington Academy"
+    },
+    "football_provider_coords": {
+      "Leicester City in the Community (LCitC)": [
+        52.6206,
+        -1.1428,
+        "King Power Stadium, Filbert Way, Leicester, LE2 7FL"
+      ],
+      "Leicester Lions RFC (hosts leagues)": [
+        52.56499,
+        -1.169145,
+        "Lutterworth Road, Blaby, Leicester, LE8 4DY"
+      ]
+    }
+  }
+}

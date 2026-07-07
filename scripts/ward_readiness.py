@@ -73,12 +73,13 @@ def facility_ward_weights(points_bng, wards_bng):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--outdir", default=Path("output"), type=Path)
+    parser.add_argument("--prefix", default="leicester", help="City slug prefixing the geojson filenames")
     args = parser.parse_args()
 
-    lsoas = load_geojson(args.outdir / "leicester_idaci_lsoa.geojson")
-    ward_polys = load_geojson(args.outdir / "leicester_ward_boundaries.geojson")
-    pitches = load_geojson(args.outdir / "leicester_pitches.geojson")
-    schools = load_geojson(args.outdir / "leicester_schools.geojson")
+    lsoas = load_geojson(args.outdir / f"{args.prefix}_idaci_lsoa.geojson")
+    ward_polys = load_geojson(args.outdir / f"{args.prefix}_ward_boundaries.geojson")
+    pitches = load_geojson(args.outdir / f"{args.prefix}_pitches.geojson")
+    schools = load_geojson(args.outdir / f"{args.prefix}_schools.geojson")
 
     wards_bng = {
         f["properties"]["ward"]: shp_transform(TO_BNG, shape(f["geometry"]))
@@ -158,7 +159,7 @@ def main():
         r["quadrant_label"], r["quadrant_action"] = QUADRANTS[q]
 
     # ---- Outputs ----
-    out_csv = args.outdir / "leicester_ward_readiness.csv"
+    out_csv = args.outdir / f"{args.prefix}_ward_readiness.csv"
     with open(out_csv, "w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=list(rows[0]))
         writer.writeheader()
@@ -169,7 +170,7 @@ def main():
         {"type": "Feature", "geometry": f["geometry"], "properties": by_ward[f["properties"]["ward"]]}
         for f in ward_polys
     ]
-    out_geo = args.outdir / "leicester_ward_readiness.geojson"
+    out_geo = args.outdir / f"{args.prefix}_ward_readiness.geojson"
     out_geo.write_text(json.dumps({"type": "FeatureCollection", "features": features}), encoding="utf-8")
 
     print(f"Wrote {out_csv} and {out_geo} ({len(rows)} wards; "

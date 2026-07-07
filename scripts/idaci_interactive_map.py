@@ -40,71 +40,6 @@ NO_DATA_COLOUR = "#cccccc"
 # 2021 LSOA count for England.
 ENGLAND_LSOA_COUNT = 33755
 
-# Year 6 obesity (incl. severe obesity) prevalence by MSOA, 2021/22-2023/24
-# 3-year average. Source: Leicester City Council NCMP 2023/24 report - these
-# are the only MSOAs given an exact percentage in the report text (others
-# are only shown as a colour band on a map image, which we're not using
-# since it's ambiguous which age group's scale it reflects). Leicester city
-# average for context: 25.6%.
-YEAR6_OBESITY_PCT_BY_MSOA = {
-    "Kirby Frith": 31.9,
-    "Newfoundpool": 31.9,
-    "Bradgate Heights & Beaumont Leys": 30.6,
-    "Stocking Farm & Mowmacre": 29.6,
-    "Clarendon Park & Stoneygate South": 18.4,
-    "Knighton": 16.3,
-}
-
-# DRAFT / UNCONFIRMED. Year 6 obesity quintile (1 = lowest prevalence, 5 =
-# highest) per MSOA, for all 38 MSOAs. Only 6 of these are grounded in an
-# exact reported percentage (see YEAR6_OBESITY_PCT_BY_MSOA above); the rest
-# are an eyeballed first-attempt estimate, positioned by matching an OHID
-# Fingertips quintile-map screenshot (no area labels) against our own MSOA
-# boundaries, combined with the NCMP report's stated pattern (prevalence
-# highest in the Northwest, lowest in the East/Southeast). This should be
-# replaced with exact Fingertips figures once available - do not treat as
-# authoritative.
-YEAR6_OBESITY_QUINTILE_DRAFT = {
-    "Kirby Frith": 5,
-    "Newfoundpool": 5,
-    "Bradgate Heights & Beaumont Leys": 5,
-    "Stocking Farm & Mowmacre": 5,
-    "Beaumont Park": 5,
-    "Dane Hills & Western Park": 5,
-    "New Parks & Stokeswood": 5,
-    "Abbey Park": 4,
-    "West End & Westcotes": 4,
-    "Braunstone Park East": 4,
-    "Braunstone Park West": 4,
-    "Rowley Fields & Faircharm": 4,
-    "Aylestone North & Saffron Fields": 4,
-    "Leicester City Centre": 4,
-    "Aylestone South": 3,
-    "Eyres Monsell": 3,
-    "Leicester City South": 3,
-    "Saffron Lane": 3,
-    "Humberstone & Hamilton South": 3,
-    "Rushey Mead North": 3,
-    "Rushey Mead South": 3,
-    "Thurnby Lodge": 3,
-    "Belgrave North West": 2,
-    "Colchester Road": 2,
-    "Hamilton North": 2,
-    "Highfields South": 2,
-    "North Evington & Rowlatts Hill": 2,
-    "Northfields & Merrydale": 2,
-    "Spinney Hill Road": 2,
-    "West Knighton": 2,
-    "Belgrave South": 1,
-    "Belgrave North East": 1,
-    "Clarendon Park & Stoneygate South": 1,
-    "Crown Hills": 1,
-    "Evington": 1,
-    "Knighton": 1,
-    "St Matthews & Highfields North": 1,
-    "Stoneygate North": 1,
-}
-
 # Colours per GIAS "EstablishmentTypeGroup", used for the schools overlay.
 SCHOOL_CATEGORY_COLOURS = {
     "Academies": "#1f78b4",
@@ -161,8 +96,6 @@ def build_features(rows):
             "lsoa_name": row.get("LSOA name"),
             "ward": row.get("Ward Name"),
             "msoa_name": msoa_name,
-            "year6_obesity_pct": YEAR6_OBESITY_PCT_BY_MSOA.get(msoa_name),
-            "year6_obesity_quintile_draft": YEAR6_OBESITY_QUINTILE_DRAFT.get(msoa_name),
             "parliamentary_constituency": row.get("Parliamentary Constituency"),
             "idaci_score": (
                 round(to_float(row.get("IDACI_score")) * 100, 1)
@@ -532,6 +465,24 @@ def build_football_provider_features(rows, school_features):
     return features, unmatched
 
 
+def apply_city_config(path):
+    """Load cities/<slug>.json and override the per-city curated lookup
+    tables (see WORKFLOW.md). Returns the parsed config."""
+    cfg = json.loads(Path(path).read_text(encoding="utf-8"))
+    names = {
+        "pitch_site_to_school": "PITCH_SITE_TO_SCHOOL",
+        "youth_centre_postcode_coords": "YOUTH_CENTRE_POSTCODE_COORDS",
+        "social_mobility_partner_coords": "SOCIAL_MOBILITY_PARTNER_COORDS",
+        "football_provider_to_school": "FOOTBALL_PROVIDER_TO_SCHOOL",
+        "football_provider_coords": "FOOTBALL_PROVIDER_COORDS",
+    }
+    for key, name in names.items():
+        if key in cfg.get("curated", {}):
+            globals()[name] = {k: tuple(v) if isinstance(v, list) else v
+                               for k, v in cfg["curated"][key].items()}
+    return cfg
+
+
 VENDOR_DIR = Path(__file__).parent / "vendor"
 
 HTML_TEMPLATE = """<!DOCTYPE html>
@@ -539,7 +490,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Leicester IDACI Deprivation Map</title>
+<title>__CITY__ IDACI Deprivation Map</title>
 <style>__LEAFLET_CSS__</style>
 <script>__LEAFLET_JS__</script>
 <style>
@@ -576,7 +527,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <body>
 <div id="app">
   <div id="sidebar">
-    <h1>Leicester IDACI Deprivation Map</h1>
+    <h1>__CITY__ IDACI Deprivation Map</h1>
     <p class="subtitle">Income Deprivation Affecting Children Index (IDACI), 2025 Indices of Deprivation &mdash; by Lower-layer Super Output Area (LSOA)</p>
 
     <fieldset>
@@ -586,8 +537,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       <label><input type="checkbox" class="metric-cb" value="imd_decile"> Overall IMD decile</label>
       <label><input type="checkbox" class="metric-cb" value="pct_children_0015"> % of population aged 0&ndash;15</label>
       <label><input type="checkbox" class="metric-cb" value="pop_0015"> Number of young people aged 0&ndash;15</label>
-      <label><input type="checkbox" class="metric-cb" value="year6_obesity_pct"> Year 6 obesity rate (6 MSOAs, exact figures)</label>
-      <label><input type="checkbox" class="metric-cb" value="year6_obesity_quintile_draft"> Year 6 obesity quintile - DRAFT, unconfirmed (all 38 MSOAs)</label>
     </fieldset>
 
     <fieldset>
@@ -645,8 +594,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       Source: 2025 English Indices of Deprivation (IDACI sub-domain), ONS mid-2022 population estimates.
       Schools: DfE Get Information about Schools (GIAS) extract.
       Pitches: Leicester playing pitches by site audit; dashed outline = plotted at a matched school's grounds (approximate).
-      Year 6 obesity: Leicester City Council NCMP 2023/24 report, 3-year average by MSOA - only the 6 MSOAs the report gives an exact figure for; applied to all LSOAs within that MSOA.
-      Year 6 obesity quintile is a DRAFT, unconfirmed estimate for all 38 MSOAs (eyeballed against an OHID Fingertips quintile map with no area labels, cross-checked with the 6 exact figures and the report's stated geographic pattern) - treat as indicative only, pending verification against exact source data.
       Deciles: 1 = most deprived 10% of LSOAs nationally, 10 = least deprived.
       Click an area, school or pitch for details.
     </footer>
@@ -688,9 +635,7 @@ function computeRange(prop) {
 
 let pctRange = computeRange('pct_children_0015');
 let pop0015Range = computeRange('pop_0015');
-let obesityRange = computeRange('year6_obesity_pct');
 
-const YEAR6_OBESITY_QUINTILE_COLOURS = { 1: '#eff3ff', 2: '#bdd7e7', 3: '#6baed6', 4: '#3182bd', 5: '#08519c' };
 
 // Metadata driving both the bivariate blend (low/high bounds to bin into
 // terciles) and its legend (axis end labels). Decile/quintile metrics use
@@ -700,8 +645,6 @@ const METRIC_INFO = {
   imd_decile: { label: 'IMD decile', low: 1, high: 10, lowLabel: 'Most deprived', highLabel: 'Least deprived' },
   pct_children_0015: { label: '% aged 0-15', low: pctRange.min, high: pctRange.max, lowLabel: 'Fewest', highLabel: 'Most' },
   pop_0015: { label: 'Number aged 0-15', low: pop0015Range.min, high: pop0015Range.max, lowLabel: 'Fewest', highLabel: 'Most' },
-  year6_obesity_pct: { label: 'Year 6 obesity %', low: obesityRange.min, high: obesityRange.max, lowLabel: 'Lower', highLabel: 'Higher' },
-  year6_obesity_quintile_draft: { label: 'Year 6 obesity quintile (draft)', low: 1, high: 5, lowLabel: 'Lower', highLabel: 'Higher' },
 };
 
 // Classic 3x3 bivariate palette (teal / purple), rows = metric B tercile
@@ -722,8 +665,6 @@ function getTercile(key, value) {
 function singleMetricColour(key, p) {
   if (key === 'pct_children_0015') return colourForRange(p.pct_children_0015, pctRange.min, pctRange.max);
   if (key === 'pop_0015') return colourForRange(p.pop_0015, pop0015Range.min, pop0015Range.max);
-  if (key === 'year6_obesity_pct') return colourForRange(p.year6_obesity_pct, obesityRange.min, obesityRange.max);
-  if (key === 'year6_obesity_quintile_draft') return YEAR6_OBESITY_QUINTILE_COLOURS[p.year6_obesity_quintile_draft] || NO_DATA_COLOUR;
   return colourForDecile(p[key]);
 }
 
@@ -758,8 +699,6 @@ function popupHtml(p) {
       <tr><td class="k">Overall IMD decile</td><td>${fmt(p.imd_decile)}</td></tr>
       <tr><td class="k">Population 0&ndash;15</td><td>${fmt(p.pop_0015)} (${fmt(p.pct_children_0015, '%')} of area)</td></tr>
       <tr><td class="k">Total population</td><td>${fmt(p.pop_total)}</td></tr>
-      ${p.year6_obesity_pct !== null && p.year6_obesity_pct !== undefined ? `<tr><td class="k">Year 6 obesity rate (MSOA, NCMP 23/24)</td><td>${p.year6_obesity_pct}%</td></tr>` : ''}
-      ${p.year6_obesity_quintile_draft ? `<tr><td class="k">Year 6 obesity quintile (DRAFT, unconfirmed)</td><td>${p.year6_obesity_quintile_draft} of 5${p.year6_obesity_pct ? ' (based on exact figure)' : ' (eyeballed estimate)'}</td></tr>` : ''}
     </table>
   `;
 }
@@ -819,26 +758,6 @@ function renderSingleLegend(el, key) {
     `;
     return;
   }
-  if (key === 'year6_obesity_pct') {
-    el.innerHTML = `
-      <div class="legend-row"><span class="legend-swatch" style="background:#ffffe5"></span>${obesityRange.min}% (lowest of the 6)</div>
-      <div class="legend-row"><span class="legend-swatch" style="background:#fb6a4a"></span>mid-range</div>
-      <div class="legend-row"><span class="legend-swatch" style="background:#67000d"></span>${obesityRange.max}% (highest of the 6)</div>
-      <div class="legend-row"><span class="legend-swatch" style="background:${NO_DATA_COLOUR}"></span>No data (32 of 38 MSOAs)</div>
-    `;
-    return;
-  }
-  if (key === 'year6_obesity_quintile_draft') {
-    el.innerHTML = `
-      <div style="font-size:11px; color:#a33; font-weight:600; margin-bottom:4px;">DRAFT - unconfirmed estimate, not official figures</div>
-      <div class="legend-row"><span class="legend-swatch" style="background:${YEAR6_OBESITY_QUINTILE_COLOURS[1]}"></span>Quintile 1 (lowest prevalence)</div>
-      <div class="legend-row"><span class="legend-swatch" style="background:${YEAR6_OBESITY_QUINTILE_COLOURS[2]}"></span>Quintile 2</div>
-      <div class="legend-row"><span class="legend-swatch" style="background:${YEAR6_OBESITY_QUINTILE_COLOURS[3]}"></span>Quintile 3</div>
-      <div class="legend-row"><span class="legend-swatch" style="background:${YEAR6_OBESITY_QUINTILE_COLOURS[4]}"></span>Quintile 4</div>
-      <div class="legend-row"><span class="legend-swatch" style="background:${YEAR6_OBESITY_QUINTILE_COLOURS[5]}"></span>Quintile 5 (highest prevalence)</div>
-    `;
-    return;
-  }
   let rows = '';
   for (let d = 1; d <= 10; d++) {
     rows += `<div class="legend-row"><span class="legend-swatch" style="background:${DECILE_COLOURS[d]}"></span>Decile ${d}${d === 1 ? ' (most deprived)' : ''}${d === 10 ? ' (least deprived)' : ''}</div>`;
@@ -862,7 +781,6 @@ function renderBivariateLegend(el, keyA, keyB) {
     ${grid}
     <div style="font-size:12px;"><b>${b.label}</b> &uarr;<br>${b.lowLabel} to ${b.highLabel}</div>
     <div class="legend-row" style="margin-top:8px;"><span class="legend-swatch" style="background:${NO_DATA_COLOUR}"></span>No data in either metric</div>
-    ${keyA === 'year6_obesity_quintile_draft' || keyB === 'year6_obesity_quintile_draft' ? '<div style="font-size:11px; color:#a33; font-weight:600; margin-top:4px;">Obesity quintile is a DRAFT, unconfirmed estimate</div>' : ''}
   `;
 }
 
@@ -1387,6 +1305,7 @@ def build_html(
     ward_boundary_features=None,
     football_provider_features=None,
     ward_readiness_features=None,
+    city="Leicester",
 ):
     geojson = {"type": "FeatureCollection", "features": features}
     schools_geojson = {"type": "FeatureCollection", "features": school_features or []}
@@ -1412,34 +1331,36 @@ def build_html(
     html = html.replace("__FOOTBALL_PROVIDERS_GEOJSON__", json.dumps(football_providers_geojson))
     ward_readiness_geojson = {"type": "FeatureCollection", "features": ward_readiness_features or []}
     html = html.replace("__WARD_READINESS_GEOJSON__", json.dumps(ward_readiness_geojson))
+    html = html.replace("__CITY__", city)
     return html
 
 
-def _load_output_features(outdir, name):
-    path = outdir / f"leicester_{name}.geojson"
+def _load_output_features(outdir, prefix, name):
+    path = outdir / f"{prefix}_{name}.geojson"
     if not path.exists():
         return []
     return json.loads(path.read_text(encoding="utf-8")).get("features", [])
 
 
-def rebuild_from_outputs(outdir):
+def rebuild_from_outputs(outdir, prefix="leicester", city="Leicester"):
     """Regenerate the HTML from the committed geojson outputs alone - no
     source CSVs needed. Lets the map be rebuilt (e.g. after adding the ward
     readiness layer) from what is in the repo."""
-    features = _load_output_features(outdir, "idaci_lsoa")
+    features = _load_output_features(outdir, prefix, "idaci_lsoa")
     if not features:
         raise SystemExit(f"No LSOA features found in {outdir}/leicester_idaci_lsoa.geojson")
     html = build_html(
         features,
-        school_features=_load_output_features(outdir, "schools"),
-        pitch_features=_load_output_features(outdir, "pitches"),
-        youth_centre_features=_load_output_features(outdir, "youth_centres"),
-        social_mobility_partner_features=_load_output_features(outdir, "social_mobility_partners"),
-        ward_boundary_features=_load_output_features(outdir, "ward_boundaries"),
-        football_provider_features=_load_output_features(outdir, "football_providers"),
-        ward_readiness_features=_load_output_features(outdir, "ward_readiness"),
+        school_features=_load_output_features(outdir, prefix, "schools"),
+        pitch_features=_load_output_features(outdir, prefix, "pitches"),
+        youth_centre_features=_load_output_features(outdir, prefix, "youth_centres"),
+        social_mobility_partner_features=_load_output_features(outdir, prefix, "social_mobility_partners"),
+        ward_boundary_features=_load_output_features(outdir, prefix, "ward_boundaries"),
+        football_provider_features=_load_output_features(outdir, prefix, "football_providers"),
+        ward_readiness_features=_load_output_features(outdir, prefix, "ward_readiness"),
+        city=city,
     )
-    out_html = outdir / "leicester_idaci_interactive_map.html"
+    out_html = outdir / f"{prefix}_idaci_interactive_map.html"
     out_html.write_text(html, encoding="utf-8")
     print(f"Rebuilt {out_html} from {outdir}/*.geojson")
 
@@ -1475,7 +1396,12 @@ def main():
         help="Football providers CSV (Organisation, Type, Address/Base, ...) matched by organisation name",
     )
     parser.add_argument("--outdir", default=Path("output"), type=Path)
+    parser.add_argument("--slug", default="leicester", help="City slug for output filenames")
+    parser.add_argument("--city", default="Leicester", help="City display name")
+    parser.add_argument("--city-config", type=Path, help="cities/<slug>.json with curated lookups")
     args = parser.parse_args()
+    if args.city_config:
+        apply_city_config(args.city_config)
 
     args.outdir.mkdir(parents=True, exist_ok=True)
 
@@ -1529,18 +1455,19 @@ def main():
         social_mobility_features,
         ward_boundary_features,
         football_provider_features,
+        city=args.city,
     )
-    out_html = args.outdir / "leicester_idaci_interactive_map.html"
+    out_html = args.outdir / f"{args.slug}_idaci_interactive_map.html"
     out_html.write_text(html, encoding="utf-8")
 
-    out_geojson = args.outdir / "leicester_idaci_lsoa.geojson"
+    out_geojson = args.outdir / f"{args.slug}_idaci_lsoa.geojson"
     out_geojson.write_text(
         json.dumps({"type": "FeatureCollection", "features": features}, indent=None),
         encoding="utf-8",
     )
 
     print(f"Parsed {len(features)} LSOAs")
-    out_wards = args.outdir / "leicester_ward_boundaries.geojson"
+    out_wards = args.outdir / f"{args.slug}_ward_boundaries.geojson"
     out_wards.write_text(
         json.dumps({"type": "FeatureCollection", "features": ward_boundary_features}, indent=None),
         encoding="utf-8",
@@ -1548,7 +1475,7 @@ def main():
     print(f"Dissolved {len(ward_boundary_features)} ward boundaries")
     print(f"Wrote {out_wards}")
     if school_features:
-        out_schools = args.outdir / "leicester_schools.geojson"
+        out_schools = args.outdir / f"{args.slug}_schools.geojson"
         out_schools.write_text(
             json.dumps({"type": "FeatureCollection", "features": school_features}, indent=None),
             encoding="utf-8",
@@ -1556,7 +1483,7 @@ def main():
         print(f"Parsed {len(school_features)} schools")
         print(f"Wrote {out_schools}")
     if pitch_features:
-        out_pitches = args.outdir / "leicester_pitches.geojson"
+        out_pitches = args.outdir / f"{args.slug}_pitches.geojson"
         out_pitches.write_text(
             json.dumps({"type": "FeatureCollection", "features": pitch_features}, indent=None),
             encoding="utf-8",
@@ -1568,7 +1495,7 @@ def main():
         for s in unmatched_sites:
             print(f"  - {s}")
     if youth_centre_features:
-        out_youth = args.outdir / "leicester_youth_centres.geojson"
+        out_youth = args.outdir / f"{args.slug}_youth_centres.geojson"
         out_youth.write_text(
             json.dumps({"type": "FeatureCollection", "features": youth_centre_features}, indent=None),
             encoding="utf-8",
@@ -1580,7 +1507,7 @@ def main():
         for s in unmatched_youth_centres:
             print(f"  - {s}")
     if social_mobility_features:
-        out_partners = args.outdir / "leicester_social_mobility_partners.geojson"
+        out_partners = args.outdir / f"{args.slug}_social_mobility_partners.geojson"
         out_partners.write_text(
             json.dumps({"type": "FeatureCollection", "features": social_mobility_features}, indent=None),
             encoding="utf-8",
@@ -1592,7 +1519,7 @@ def main():
         for s in unmatched_partners:
             print(f"  - {s}")
     if football_provider_features:
-        out_providers = args.outdir / "leicester_football_providers.geojson"
+        out_providers = args.outdir / f"{args.slug}_football_providers.geojson"
         out_providers.write_text(
             json.dumps({"type": "FeatureCollection", "features": football_provider_features}, indent=None),
             encoding="utf-8",
