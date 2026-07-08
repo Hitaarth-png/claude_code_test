@@ -12,6 +12,5 @@ cities:
   birmingham:    { name: Birmingham,    lad_code: E08000025, gias_la_code: 330 }
   coventry:      { name: Coventry,      lad_code: E08000026, gias_la_code: 331 }
   dudley:        { name: Dudley,        lad_code: E08000027, gias_la_code: 332 }
-  sandwell:      { name: Sandwell,      lad_code: E08000028, gias_la_code: 333 }
   solihull:      { name: Solihull,      lad_code: E08000029, gias_la_code: 334 }
   walsall:       { name: Walsall,       lad_code: E08000030, gias_la_code: 335 }
