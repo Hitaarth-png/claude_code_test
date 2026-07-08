@@ -44,21 +44,36 @@ tiles). Toggle layers via the control top-right; hover an LSOA for its stats.
 
 Download the files below and place them at the paths in `config.yaml`
 (`data/…`), then re-run the pipeline. Column names are auto-detected, so the
-raw government headers work unchanged.
+raw government headers work unchanged. Real files are **never overwritten** —
+`make_sample_data.py` fabricates only the inputs that are still missing.
 
 | Config path | Source |
 |---|---|
-| `paths.boundaries` | ONS Open Geography Portal — LSOA (2021) boundaries, filtered to Wolverhampton |
+| `paths.boundaries` | ONS Open Geography Portal — LSOA (2011) boundaries, filtered to Wolverhampton |
 | `paths.imd` | English Indices of Deprivation 2019 (gov.uk) — IMD + IDACI scores/deciles per LSOA |
 | `paths.youth_population` | ONS mid-year population estimates — ages 0–15 per LSOA |
 | `paths.lsoa_ward_lookup` | ONS LSOA → Ward best-fit lookup |
-| `paths.assets.*` | Point data (lon/lat or easting/northing) for schools (GIAS), football pitches/providers (FA / Active Places), youth mobility centres (internal) |
+| `paths.assets.*` | Point data (lon/lat or easting/northing) for football pitches/providers (FA / Active Places) |
+
+### Schools & youth-mobility centres — GIAS
+
+Drop a raw **GIAS** export (Get Information About Schools, gov.uk) at
+`paths.gias_raw`. `prepare_gias.py` keeps open establishments in
+`city.gias_la_code` (Wolverhampton = `336`), converts Easting/Northing to
+lon/lat, and writes real `schools.csv` (114 schools) and
+`youth_mobility_centres.csv` (16 children's centres). Only establishment
+**name + location + type** are used — no pupil, FSM, or staff fields.
+
+**Current layer status:** schools and youth-mobility centres are **real**
+(GIAS); IMD/IDACI, youth population, and football pitches/providers are
+**synthetic** demo data on real geometry until their real sources are supplied.
 
 ## Pipeline stages (`scripts/`)
 
 | Stage | Script | Output |
 |---|---|---|
-| 0 | `make_sample_data.py` | real ONS boundaries + synthetic attributes (`data/`) |
+| 0a | `prepare_gias.py` | real `data/assets/schools.csv`, `…/youth_mobility_centres.csv` |
+| 0b | `make_sample_data.py` | real ONS boundaries + synthetic fill for missing inputs (`data/`) |
 | 1 | `ingest.py` | `build/lsoa_attributes.csv` |
 | 2 | `geocode_assets.py` | `build/asset_counts_lsoa.csv` |
 | 3 | `build_metrics.py` | `build/lsoa_metrics.csv`, `build/ward_metrics.csv` |

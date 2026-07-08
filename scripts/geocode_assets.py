@@ -43,6 +43,9 @@ def main():
     counts = base[["lsoa_code"]].copy()
     for asset_type, path in cfg["paths"]["assets"].items():
         pts = load_points(resolve(path), work_crs)
+        # Keep only geometry so any source column (e.g. GIAS lsoa_code) can't
+        # collide with the boundary's lsoa_code during the join.
+        pts = pts[["geometry"]]
         joined = gpd.sjoin(pts, base, how="inner", predicate="within")
         per_lsoa = joined.groupby("lsoa_code").size().rename(asset_type)
         counts = counts.merge(per_lsoa, on="lsoa_code", how="left")

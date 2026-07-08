@@ -34,10 +34,17 @@ def main():
     args = ap.parse_args()
 
     cfg = load_config()
+
+    # Convert any supplied raw GIAS export into real school / youth-centre assets
+    # before the sample step, so those real files pre-exist and are kept.
+    gias_raw = cfg["paths"].get("gias_raw")
+    if gias_raw and resolve(gias_raw).exists():
+        run("prepare_gias")
+
     if not inputs_present(cfg):
         if args.no_sample:
             sys.exit("Input data files missing (see README.md). Aborting (--no-sample).")
-        print("Input files missing -> generating SYNTHETIC demonstration data.")
+        print("Some inputs missing -> fabricating only the missing ones (real files kept).")
         run("make_sample_data")
 
     for stage in STAGES:

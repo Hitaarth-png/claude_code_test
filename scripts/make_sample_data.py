@@ -82,17 +82,23 @@ def main():
     work_crs = cfg["crs"]["working"]
     rng = random.Random(20260708)
 
+    def need(cfg_path):
+        """True if this input is missing and must be fabricated (real files win)."""
+        return not resolve(cfg_path).exists()
+
     lsoas, wards = load_real_boundaries(cfg)
     l = assign_wards(lsoas, wards, work_crs)  # projected, with ward_name
 
     # Boundaries output (WGS84), like a real ONS export.
-    bpath = resolve(cfg["paths"]["boundaries"])
-    bpath.parent.mkdir(parents=True, exist_ok=True)
-    l.to_crs(4326)[["lsoa_code", "lsoa_name", "geometry"]].to_file(bpath, driver="GeoJSON")
+    if need(cfg["paths"]["boundaries"]):
+        bpath = resolve(cfg["paths"]["boundaries"])
+        bpath.parent.mkdir(parents=True, exist_ok=True)
+        l.to_crs(4326)[["lsoa_code", "lsoa_name", "geometry"]].to_file(bpath, driver="GeoJSON")
 
     # LSOA -> ward lookup.
-    l[["lsoa_code", "lsoa_name", "ward_name"]].to_csv(
-        resolve(cfg["paths"]["lsoa_ward_lookup"]), index=False)
+    if need(cfg["paths"]["lsoa_ward_lookup"]):
+        l[["lsoa_code", "lsoa_name", "ward_name"]].to_csv(
+            resolve(cfg["paths"]["lsoa_ward_lookup"]), index=False)
 
     # Synthetic attributes with a real spatial gradient (deprivation rises toward
     # the geographic centre; noise added).
@@ -111,17 +117,23 @@ def main():
         "IDACI Decile": rank_to_decile(idaci, ascending=True),
         "IMD Decile": rank_to_decile(imd, ascending=True),
     })
-    imd_df.to_csv(resolve(cfg["paths"]["imd"]), index=False)
-    pd.DataFrame({"lsoa_code": l["lsoa_code"], "youth_population_0_15": youth}).to_csv(
-        resolve(cfg["paths"]["youth_population"]), index=False)
+    if need(cfg["paths"]["imd"]):
+        imd_df.to_csv(resolve(cfg["paths"]["imd"]), index=False)
+    if need(cfg["paths"]["youth_population"]):
+        pd.DataFrame({"lsoa_code": l["lsoa_code"], "youth_population_0_15": youth}).to_csv(
+            resolve(cfg["paths"]["youth_population"]), index=False)
 
-    # Synthetic asset points scattered within the REAL city polygon.
+    # Synthetic asset points scattered within the REAL city polygon — only for
+    # asset types with no real file already in place.
     city_poly = l.geometry.union_all() if hasattr(l.geometry, "union_all") else l.geometry.unary_union
     assets = cfg["paths"]["assets"]
+    fabricated = []
     for key, n, prefix in [
         ("schools", 80, "School"), ("football_pitches", 48, "Pitch"),
         ("football_providers", 30, "Provider"), ("youth_mobility_centres", 12, "Youth Centre"),
     ]:
+        if not need(assets[key]):
+            continue
         pts = sample_points(city_poly, n, rng)
         g = gpd.GeoSeries(pts, crs=work_crs).to_crs(4326)
         df = pd.DataFrame({"name": [f"{prefix} {i+1}" for i in range(n)],
@@ -129,10 +141,12 @@ def main():
         path = resolve(assets[key])
         path.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(path, index=False)
+        fabricated.append(key)
 
     print(f"Real geometry for {cfg['city']['name']}: {len(l)} LSOAs, "
           f"{l['ward_name'].nunique()} wards.")
-    print("NOTE: geometry is real; attributes & assets are synthetic (demo only).")
+    print(f"Fabricated synthetic asset layers (no real source): {fabricated or 'none'}")
+    print("NOTE: geometry is real; fabricated attributes/assets are for demo only.")
 
 
 if __name__ == "__main__":

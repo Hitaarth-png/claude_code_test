@@ -5,6 +5,7 @@
 city:
   name: Wolverhampton
   lad_code: E08000031        # ONS LAD/LA code for the City of Wolverhampton
+  gias_la_code: 336          # GIAS "LA (code)" for Wolverhampton (distinct from the ONS code)
 
 crs:
   working: 27700             # British National Grid (metres) — used for area/joins
@@ -15,6 +16,7 @@ crs:
 # If a file is missing, scripts/make_sample_data.py can generate a synthetic
 # stand-in so the pipeline runs end-to-end for demonstration.
 paths:
+  gias_raw: data/raw/gias_wolverhampton.csv       # raw GIAS establishment export (real schools/centres)
   boundaries: data/lsoa_boundaries.geojson       # ONS LSOA (2021) boundaries
   imd: data/imd2019.csv                           # IoD2019 IMD + IDACI scores/deciles
   youth_population: data/youth_pop.csv            # ONS mid-year est., ages 0-15 per LSOA
