@@ -1,12 +1,21 @@
 # Replicating the interactive city map for a new city
 
-One command builds the whole map once the data is prepared:
+Two commands build any English city's map from nothing (no manual data prep):
 
 ```
-python scripts/build_city_map.py --config cities/<slug>.json
-# or, if the <slug>_*.geojson files already exist in output/:
-python scripts/build_city_map.py --config cities/<slug>.json --from-outputs
+python scripts/prepare_city_data.py --city "Newcastle upon Tyne" [--schools-csv gias.zip]
+python scripts/build_city_map.py --config cities/<slug>.json --from-outputs --verify
 ```
+
+Stage 0 (`prepare_city_data.py`) resolves the LAD code from `data/lad_codes.csv`,
+fetches boundaries + IoD2019/population mirrors from GitHub, computes IDACI,
+writes the base geojsons and the city config. Optionally ingests a GIAS schools
+export (csv/zip; auto-detects the right LA). Missing facility layers are fine -
+the map builds LSOA-only and readiness enables itself when data arrives.
+`--verify` makes failures loud (non-zero exit) for unattended runs.
+
+If you already have source CSVs matching the original Leicester formats, the
+CSV-driven path still works: `build_city_map.py --config cities/<slug>.json`.
 
 Output: `output/<slug>_idaci_interactive_map.html` — self-contained (Leaflet
 vendored), plus `<slug>_ward_readiness.{csv,geojson}` and the per-layer

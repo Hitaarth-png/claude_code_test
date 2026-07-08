@@ -1,0 +1,333 @@
+name,gss_code,alt_names
+Adur,E07000223,Adur
+Amber Valley,E07000032,Amber Valley
+Arun,E07000224,Arun
+Ashford,E07000105,Ashford
+Ashfield,E07000170,Ashfield
+Babergh,E07000200,Babergh
+Bassetlaw,E07000171,Bassetlaw
+Basildon,E07000066,"Basildon,basildon,basildon borough council,basildon district"
+Basingstoke and Deane,E07000084,"Basingstoke and Deane,Basingstoke & Deane"
+Bath and North East Somerset,E06000022,"Bath and North East Somerset,Bath & North East Somerset UA,bath and north east somerset,bath and north east somerset council"
+Blackburn with Darwen,E06000008,"Blackburn with Darwen,Blackburn With Darwen UA,blackburn,blackburn with darwen,blackburn with darwen borough council"
+Bedford,E06000055,"Bedford,Bedford UA,bedford,bedford borough council"
+Barking and Dagenham,E09000002,"Barking and Dagenham,Barking & Dagenham,barking and dagenham,barking and dagenham london boro,london borough of barking and dagenham"
+Brent,E09000005,"Brent,brent,brent london boro,london borough of brent"
+Bexley,E09000004,"Bexley,bexley,bexley london boro,london borough of bexley"
+Birmingham,E08000025,"Birmingham,birmingham,birmingham city council,birmingham district"
+Blaby,E07000129,Blaby
+Barnet,E09000003,Barnet
+Brighton and Hove,E06000043,"Brighton and Hove,Brighton & Hove UA,brighton and hove,brighton and hove city council,city of brighton and hove,the city of brighton and hove"
+Barnsley,E08000016,"Barnsley,barnsley,barnsley district,barnsley metropolitan borough council"
+Bolton,E08000001,"Bolton,bolton,bolton district,bolton metropolitan borough council"
+Bolsover,E07000033,Bolsover
+Boston,E07000136,Boston
+"Bournemouth, Christchurch and Poole",E06000058,"Bournemouth, Christchurch and Poole,Bournemouth Christchurch and Poole,bournemouth, christchurch and poole borough council"
+Blackpool,E06000009,"Blackpool,Blackpool UA,blackpool,blackpool borough council"
+Braintree,E07000067,"Braintree,braintree,braintree district,braintree district council"
+Bracknell Forest,E06000036,"Bracknell Forest,Bracknell Forest UA"
+Bradford,E08000032,"Bradford,bradford,bradford district,bradford mdc,bradford metropolitan district council"
+Breckland,E07000143,Breckland
+Bromsgrove,E07000234,"Bromsgrove,bromsgrove,bromsgrove district,bromsgrove district council"
+Broadland,E07000144,"Broadland,broadland,broadland district,broadland district council"
+Broxtowe,E07000172,Broxtowe
+Brentwood,E07000068,Brentwood
+Broxbourne,E07000095,"Broxbourne,borough of broxbourne"
+Bromley,E09000006,"Bromley,bromley,bromley london boro,london borough of bromley"
+City of Bristol,E06000023,"City of Bristol,Bristol, City of,Bristol UA,bristol,bristol city council,bristol city of,bristol, city of,city of bristol"
+Buckinghamshire,E06000060,"Buckinghamshire,buckinghamshire"
+Burnley,E07000117,Burnley
+Bury,E08000002,"Bury,bury,bury district,bury metropolitan borough council"
+Cambridge,E07000008,Cambridge
+Cambridgeshire,E10000003,"Cambridgeshire,cambridgeshire,cambridgeshire county,cambridgeshire county council"
+Cannock Chase,E07000192,Cannock Chase
+Castle Point,E07000069,Castle Point
+Canterbury,E07000106,Canterbury
+Cumberland,E06000063,"Cumberland,cumberland"
+Central Bedfordshire,E06000056,"Central Bedfordshire,Central Bedfordshire UA,central bedfordshire,central bedfordshire council"
+Charnwood,E07000130,Charnwood
+Cheshire East,E06000049,"Cheshire East,Cheshire East UA"
+Chichester,E07000225,"Chichester,chichester,chichester district,chichester district council"
+Chelmsford,E07000070,"Chelmsford,chelmsford,chelmsford city council,chelmsford district"
+Chorley,E07000118,Chorley
+Cherwell,E07000177,Cherwell
+Chesterfield,E07000034,Chesterfield
+Cheltenham,E07000078,"Cheltenham,cheltenham,cheltenham borough council,cheltenham district"
+Cheshire West and Chester,E06000050,"Cheshire West and Chester,Cheshire West And Chester UA"
+Calderdale,E08000033,"Calderdale,calderdale,calderdale district,calderdale metropolitan borough council"
+Camden,E09000007,"Camden,camden,camden london boro,london borough of camden"
+Colchester,E07000071,Colchester
+Cornwall,E06000052,"Cornwall,Cornwall UA,cornwall,cornwall council"
+Cotswold,E07000079,Cotswold
+Coventry,E08000026,"Coventry,coventry,coventry city council,coventry district"
+Cambridgeshire and Peterborough,E47000008,Cambridgeshire and Peterborough CA
+Crawley,E07000226,"Crawley,crawley,crawley borough council,crawley district"
+Croydon,E09000008,"Croydon,croydon,croydon london boro,london borough of croydon"
+Dacorum,E07000096,Dacorum
+Darlington,E06000005,"Darlington,Darlington UA,darlington,darlington borough council"
+Dartford,E07000107,Dartford
+Derbyshire,E10000007,"Derbyshire,derbyshire,derbyshire county,derbyshire county council"
+Derbyshire Dales,E07000035,Derbyshire Dales
+Derby,E06000015,"Derby,Derby City UA,Derby UA,city of derby,derby,derby city,derby city council"
+Devon,E10000008,"Devon,devon,devon county,devon county council"
+Doncaster,E08000017,"Doncaster,doncaster,doncaster district,doncaster metropolitan borough council,city of doncaster council,city of doncaster,doncaster city council,doncaster city"
+Dover,E07000108,Dover
+Dorset Council,E06000059,"Dorset Council,Dorset,dorset"
+Dudley,E08000027,"Dudley,dudley,dudley district,dudley metropolitan borough council"
+County Durham,E06000047,"County Durham,Durham,Durham UA,county durham,durham,durham county council"
+Ealing,E09000009,"Ealing,ealing,ealing london boro,london borough of ealing"
+Eastbourne,E07000061,Eastbourne
+Eastleigh,E07000086,Eastleigh
+East Cambridgeshire,E07000009,East Cambridgeshire
+East Devon,E07000040,"East Devon,east devon,east devon district,east devon district council"
+East Hampshire,E07000085,"East Hampshire,east hampshire,east hampshire district,east hampshire district council"
+East Hertfordshire,E07000242,"East Hertfordshire,east hertfordshire,east hertfordshire district,east hertfordshire district council"
+East Lindsey,E07000137,"East Lindsey,east lindsey,east lindsey district,east lindsey district council"
+Elmbridge,E07000207,Elmbridge
+East Midlands CCA,E47000013,East Midlands CC
+Enfield,E09000010,"Enfield,enfield,enfield london boro,london borough of enfield"
+Epping Forest,E07000072,Epping Forest
+Epsom and Ewell,E07000208,"Epsom and Ewell,Epsom & Ewell"
+Erewash,E07000036,Erewash
+East Riding of Yorkshire,E06000011,"East Riding of Yorkshire,East Riding Of Yorkshire UA,east riding of yorkshire,east riding of yorkshire council"
+East Suffolk,E07000244,East Suffolk
+Essex,E10000012,"Essex,essex,essex county,essex county council"
+East Staffordshire,E07000193,"East Staffordshire,east staffordshire,east staffordshire borough council,east staffordshire district"
+East Sussex,E10000011,"East Sussex,east sussex,east sussex county,east sussex county council"
+Exeter,E07000041,Exeter
+Fareham,E07000087,Fareham
+Fenland,E07000010,Fenland
+Forest of Dean,E07000080,Forest of Dean
+Fylde,E07000119,Fylde
+Gateshead,E08000037,"Gateshead,gateshead,gateshead district,gateshead metropolitan borough council"
+Gedling,E07000173,Gedling
+Greater London,E61000001,"Greater London,greater london"
+Greater Lincolnshire CCA,E47000017,Greater Lincolnshire CA
+Gloucester,E07000081,Gloucester
+Gloucestershire,E10000013,"Gloucestershire,gloucestershire,gloucestershire county,gloucestershire county council"
+Greater Manchester,E47000001,Greater Manchester CA
+Gosport,E07000088,Gosport
+Gravesham,E07000109,Gravesham
+Greenwich,E09000011,"Greenwich,greenwich,greenwich london boro,royal borough of greenwich"
+Guildford,E07000209,Guildford
+Great Yarmouth,E07000145,"Great Yarmouth,great yarmouth,great yarmouth borough council,great yarmouth district"
+Havant,E07000090,Havant
+Halton,E06000006,"Halton,Halton UA,halton,halton borough council"
+Hampshire,E10000014,"Hampshire,hampshire,hampshire county,hampshire county council"
+Harborough,E07000131,Harborough
+Harlow,E07000073,Harlow
+Hastings,E07000062,Hastings
+Hart,E07000089,"Hart,hart,hart district,hart district council"
+Havering,E09000016,"Havering,havering,havering london boro,london borough of havering"
+Hackney,E09000012,"Hackney,hackney,hackney london boro,london borough of hackney"
+Herefordshire,E06000019,"Herefordshire,Herefordshire UA,county of herefordshire,herefordshire,herefordshire council,herefordshire, county of"
+Hertsmere,E07000098,Hertsmere
+High Peak,E07000037,High Peak
+Hillingdon,E09000017,"Hillingdon,hillingdon,hillingdon london boro,london borough of hillingdon"
+Hinckley and Bosworth,E07000132,"Hinckley and Bosworth,Hinckley & Bosworth"
+Hammersmith and Fulham,E09000013,"Hammersmith and Fulham,Hammersmith & Fulham,hammersmith and fulham,hammersmith and fulham london boro,london borough of hammersmith and fulham"
+Hounslow,E09000018,"Hounslow,hounslow,hounslow london boro,london borough of hounslow"
+Horsham,E07000227,Horsham
+Hartlepool,E06000001,"Hartlepool,Hartlepool UA,hartlepool,hartlepool borough council"
+Hertfordshire,E10000015,Hertfordshire
+Harrow,E09000015,"Harrow,harrow,harrow london boro,london borough of harrow"
+Haringey,E09000014,"Haringey,haringey,haringey london boro,london borough of haringey"
+Huntingdonshire,E07000011,Huntingdonshire
+Yorkshire and The Humber MCA,E47000016,Yorkshire and The Humber CA
+Hyndburn,E07000120,Hyndburn
+Isles of Scilly,E06000053,"Isles of Scilly,isles of scilly"
+Isle of Wight,E06000046,"Isle of Wight,Isle Of Wight UA,isle of wight,isle of wight council"
+Ipswich,E07000202,Ipswich
+Islington,E09000019,"Islington,islington,islington london boro,london borough of islington"
+Kensington and Chelsea,E09000020,"Kensington and Chelsea,Kensington & Chelsea,kensington and chelsea,kensington and chelsea london boro,royal borough of kensington and chelsea"
+Kent,E10000016,"Kent,kent,kent county,kent county council"
+Kingston upon Hull,E06000010,"Kingston upon Hull,Kingston upon Hull, City of,Kingston Upon Hull UA,city of kingston upon hull,hull city,hull city council,kingston upon hull,kingston upon hull city of,kingston upon hull, city of,kingston-upon-hull city council"
+Kings Lynn and West Norfolk,E07000146,"Kings Lynn and West Norfolk,King's Lynn & West Norfolk,Kings Lynn & West Norfolk,borough council of kings lynn and west norfolk,king's lynn and west norfolk,king's lynn and west norfolk district,kings lynn and west norfolk,king's lynn and west norfolk borough"
+Kirklees,E08000034,"Kirklees,kirklees,kirklees council,kirklees district"
+Kingston upon Thames,E09000021,"Kingston upon Thames,kingston upon thames,kingston upon thames london boro,kingston-upon-thames,royal borough of kingston upon thames"
+Knowsley,E08000011,"Knowsley,knowsley,knowsley council,knowsley district"
+Lancaster,E07000121,"Lancaster,lancaster,lancaster city,lancaster city council,lancaster district"
+Lancashire,E10000017,"Lancashire,lancashire,lancashire county,lancashire county council"
+Lambeth,E09000022,"Lambeth,lambeth,lambeth london boro,london borough of lambeth"
+Leicester,E06000016,"Leicester,Leicester City UA,Leicester UA,city of leicester,leicester,leicester city,leicester city council"
+Liverpool City Region,E47000004,"Liverpool City CA,liverpool city region combined authority"
+Leeds,E08000035,"Leeds,leeds,leeds city council,leeds district"
+Leicestershire,E10000018,"Leicestershire,leicestershire,leicestershire county,leicestershire county council"
+Lewes,E07000063,Lewes
+Lewisham,E09000023,"Lewisham,lewisham,lewisham london boro,london borough of lewisham"
+City of Lincoln,E07000138,"City of Lincoln,Lincoln"
+Lichfield,E07000194,Lichfield
+Lincolnshire,E10000019,"Lincolnshire,lincolnshire,lincolnshire county,lincolnshire county council"
+Liverpool,E08000012,"Liverpool,liverpool,liverpool city council,liverpool district"
+City of London,E09000001,"City of London,city and county of the city of london,city of london,city of london corporation"
+Luton,E06000032,"Luton,Luton UA,luton,luton borough council"
+Maidstone,E07000110,Maidstone
+Maldon,E07000074,Maldon
+Manchester,E08000003,"Manchester,manchester,manchester city council,manchester district"
+Mansfield,E07000174,Mansfield
+Malvern Hills,E07000235,Malvern Hills
+Middlesbrough,E06000002,"Middlesbrough,Middlesbrough UA,middlesbrough,middlesbrough borough council"
+Mid Devon,E07000042,Mid Devon
+Medway,E06000035,"Medway,The Medway Towns UA,Medway Towns UA,medway,medway council"
+Melton,E07000133,Melton
+Milton Keynes,E06000042,"Milton Keynes,Milton Keynes UA,milton keynes,milton keynes council"
+Mole Valley,E07000210,Mole Valley
+Merton,E09000024,"Merton,london borough of merton,merton,merton london boro"
+Mid Sussex,E07000228,Mid Sussex
+Mid Suffolk,E07000203,Mid Suffolk
+Northumberland,E06000057,"Northumberland,Northumberland UA,northumberland,northumberland council"
+North Devon,E07000043,"North Devon,north devon,north devon council,north devon district"
+Newark and Sherwood,E07000175,"Newark and Sherwood,Newark & Sherwood"
+Newcastle-under-Lyme,E07000195,"Newcastle-under-Lyme,newcastle-under-lyme,newcastle-under-lyme district,newcastle-under-lyme district council"
+North East,E47000010,North East CA
+North East Derbyshire,E07000038,North East Derbyshire
+North East Lincolnshire,E06000012,"North East Lincolnshire,North East Lincolnshire UA,north east lincolnshire,north east lincolnshire council"
+Newcastle upon Tyne,E08000021,"Newcastle upon Tyne,newcastle city council,newcastle upon tyne,newcastle upon tyne district,newcastle-upon-tyne city council"
+New Forest,E07000091,New Forest
+Norfolk,E10000020,"Norfolk,norfolk,norfolk county,norfolk county council"
+Nottingham,E06000018,"Nottingham,City of Nottingham UA,Nottingham UA,city of nottingham,nottingham,nottingham city,nottingham city council"
+North Hertfordshire,E07000099,North Hertfordshire
+North Kesteven,E07000139,North Kesteven
+North Lincolnshire,E06000013,"North Lincolnshire,North Lincolnshire UA,north lincolnshire,north lincolnshire council"
+North Norfolk,E07000147,North Norfolk
+North Northamptonshire,E06000061,North Northamptonshire
+Norwich,E07000148,Norwich
+North Somerset,E06000024,"North Somerset,North Somerset UA,north somerset,north somerset council,north west somerset"
+North of Tyne,E47000011,"newcastle upon tyne, north tyneside and northumberland combined authority,Newcastle Upon Tyne, North Tyneside and Northumberland Combined Authority"
+Nottinghamshire,E10000024,"Nottinghamshire,nottinghamshire,nottinghamshire county,nottinghamshire county council"
+North Tyneside,E08000022,"North Tyneside,north tyneside,north tyneside council,north tyneside district,north tyneside metropolitan borough council"
+Nuneaton and Bedworth,E07000219,"Nuneaton and Bedworth,Nuneaton & Bedworth"
+North Warwickshire,E07000218,North Warwickshire
+North West Leicestershire,E07000134,"North West Leicestershire,north west leicestershire,north west leicestershire district,north west leicestershire district council"
+Newham,E09000025,"Newham,london borough of newham,newham,newham london boro"
+North Yorkshire,E06000065,"North Yorkshire,north yorkshire"
+Oadby and Wigston,E07000135,"Oadby and Wigston,Oadby & Wigston"
+Oldham,E08000004,"Oldham,oldham,oldham district,oldham metropolitan borough council"
+Oxfordshire,E10000025,"Oxfordshire,oxfordshire,oxfordshire county,oxfordshire county council"
+Oxford,E07000178,Oxford
+Pendle,E07000122,Pendle
+Plymouth,E06000026,"Plymouth,Plymouth UA,city of plymouth,plymouth,plymouth city,plymouth city council"
+Portsmouth,E06000044,"Portsmouth,Portsmouth UA,city of portsmouth,portsmouth,portsmouth city council"
+Preston,E07000123,Preston
+Peterborough,E06000031,"Peterborough,Peterborough UA,city of peterborough,peterborough,peterborough city,peterborough city council"
+Redcar and Cleveland,E06000003,"Redcar and Cleveland,Redcar & Cleveland UA,redcar and cleveland,redcar and cleveland borough council"
+Rochdale,E08000005,"Rochdale,rochdale,rochdale district,rochdale metropolitan borough council"
+Redbridge,E09000026,"Redbridge,london borough of redbridge,redbridge,redbridge london boro"
+Reading,E06000038,"Reading,Reading UA,reading,reading borough council"
+Redditch,E07000236,Redditch
+Reigate and Banstead,E07000211,"Reigate and Banstead,Reigate & Banstead,reigate & banstead borough council"
+Ribble Valley,E07000124,Ribble Valley
+Richmond upon Thames,E09000027,"Richmond upon Thames,london borough of richmond upon thames,richmond upon thames,richmond upon thames london boro,richmond-upon-thames"
+Rochford,E07000075,Rochford
+Rother,E07000064,Rother
+Rossendale,E07000125,Rossendale
+Rotherham,E08000018,"Rotherham,rotherham,rotherham district,rotherham metropolitan borough council"
+Rugby,E07000220,Rugby
+Rushmoor,E07000092,Rushmoor
+Runnymede,E07000212,Runnymede
+Rushcliffe,E07000176,Rushcliffe
+Rutland,E06000017,"Rutland,Rutland UA,rutland,rutland county council"
+St Albans,E07000240,St Albans
+Sandwell,E08000028,"Sandwell,sandwell,sandwell district,sandwell metropolitan borough council"
+South Cambridgeshire,E07000012,South Cambridgeshire
+South Yorkshire Mayoral Combined Authority,E47000002,"Sheffield City Region Combined Authority,Sheffield City Region,Sheffield City CA,sheffield city region combined authority"
+South Derbyshire,E07000039,South Derbyshire
+Sevenoaks,E07000111,Sevenoaks
+Suffolk,E10000029,"Suffolk,suffolk,suffolk county,suffolk county council"
+Sefton,E08000014,"Sefton,sefton,sefton council,sefton district,sefton metropolitan borough council"
+South Gloucestershire,E06000025,"South Gloucestershire,South Gloucestershire UA,south gloucestershire,south gloucestershire council"
+South Hams,E07000044,"South Hams,south hams,south hams district,south hams district council"
+Folkestone and Hythe,E07000112,"Folkestone and Hythe,Shepway District Council,Shepway"
+Sheffield,E08000019,"Sheffield,sheffield,sheffield city council,sheffield district"
+St. Helens,E08000013,"St. Helens,St Helens,st helens,st helens council,st. helens,st. helens district,st helens metropolitan borough council"
+South Holland,E07000140,"South Holland,south holland,south holland district,south holland district council"
+Shropshire,E06000051,"Shropshire,Shropshire UA,shropshire,shropshire council"
+South Kesteven,E07000141,South Kesteven
+Stockport,E08000007,"Stockport,stockport,stockport district,stockport metropolitan borough council"
+Salford,E08000006,"Salford,salford,salford city council,salford district"
+Slough,E06000039,"Slough,Slough UA,slough,slough borough council"
+Somerset,E06000066,"Somerset,somerset"
+Sunderland,E08000024,"Sunderland,sunderland,sunderland city council,sunderland district"
+South Norfolk,E07000149,South Norfolk
+Solihull,E08000029,Solihull
+Southend-on-Sea,E06000033,"Southend-on-Sea,Southend-on-Sea UA,Southend UA"
+South Oxfordshire,E07000179,"South Oxfordshire,south oxfordshire,south oxfordshire district,south oxfordshire district council"
+Spelthorne,E07000213,Spelthorne
+South Ribble,E07000126,South Ribble
+Surrey,E10000030,"Surrey,surrey,surrey county,surrey county council"
+South Staffordshire,E07000196,"South Staffordshire,south staffordshire,south staffordshire council,south staffordshire district"
+Stafford,E07000197,"Stafford,stafford,stafford borough council,stafford district"
+Stoke-on-Trent,E06000021,"Stoke-on-Trent,Stoke-On-Trent UA"
+Staffordshire Moorlands,E07000198,Staffordshire Moorlands
+Southampton,E06000045,"Southampton,Southampton UA,city of southampton,southampton,southampton city council"
+Sutton,E09000029,"Sutton,london borough of sutton,sutton,sutton london boro"
+Stroud,E07000082,Stroud
+Stratford-on-Avon,E07000221,Stratford-on-Avon
+Staffordshire,E10000028,"Staffordshire,staffordshire,staffordshire county,staffordshire county council"
+Stockton-on-Tees,E06000004,"Stockton-on-Tees,Stockton-On-Tees UA,Stockton On Tees UA,stockton on tees,stockton-on-tees,stockton-on-tees borough council"
+Stevenage,E07000243,"Stevenage,stevenage,stevenage borough council,stevenage district"
+South Tyneside,E08000023,"South Tyneside,south tyneside,south tyneside council,south tyneside district"
+Surrey Heath,E07000214,Surrey Heath
+Swindon,E06000030,"Swindon,Swindon UA,swindon,swindon borough council"
+Southwark,E09000028,"Southwark,london borough of southwark,southwark,southwark london boro"
+Swale,E07000113,Swale
+Tameside,E08000008,"Tameside,tameside,tameside district,tameside metropolitan borough council"
+Tandridge,E07000215,Tandridge
+Tamworth,E07000199,Tamworth
+Teignbridge,E07000045,Teignbridge
+Tendring,E07000076,Tendring
+Test Valley,E07000093,Test Valley
+Tewkesbury,E07000083,Tewkesbury
+Telford and Wrekin,E06000020,"Telford and Wrekin,Telford and the Wrekin UA,Telford & Wrekin UA,telford and wrekin,telford and wrekin council"
+Thanet,E07000114,Thanet
+Three Rivers,E07000102,Three Rivers
+Thurrock,E06000034,"Thurrock,Thurrock UA"
+Torbay,E06000027,"Torbay,Torbay UA,torbay,torbay council"
+Tonbridge and Malling,E07000115,"Tonbridge and Malling,Tonbridge & Malling"
+Torridge,E07000046,Torridge
+Trafford,E08000009,"Trafford,trafford,trafford council,trafford district"
+Tunbridge Wells,E07000116,Tunbridge Wells
+Tees Valley,E47000006,Tees Valley CA
+Tower Hamlets,E09000030,"Tower Hamlets,london borough of tower hamlets,tower hamlets,tower hamlets london boro"
+Uttlesford,E07000077,Uttlesford
+Vale of White Horse,E07000180,Vale of White Horse
+Waverley,E07000216,Waverley
+Westmorland and Furness,E06000064,"Westmorland and Furness Council,westmorland and furness Council"
+Warwickshire,E10000031,Warwickshire
+Watford,E07000103,Watford
+Warwick,E07000222,Warwick
+West Berkshire,E06000037,"West Berkshire,West Berkshire UA,west berkshire,west berkshire council"
+West Devon,E07000047,"West Devon,west devon,west devon borough council,west devon district"
+Wealden,E07000065,Wealden
+West of England,E47000009,West of England CA
+Welwyn Hatfield,E07000241,Welwyn Hatfield
+Waltham Forest,E09000031,"Waltham Forest,london borough of waltham forest,waltham forest,waltham forest london boro"
+Wigan,E08000010,"Wigan,wigan,wigan council,wigan district"
+Wiltshire,E06000054,"Wiltshire,Wiltshire UA,wiltshire,wiltshire council"
+Winchester,E07000094,Winchester
+Wakefield,E08000036,"Wakefield,wakefield,wakefield district,wakefield metropolitan district council"
+West Lancashire,E07000127,"West Lancashire,west lancashire,west lancashire borough council,west lancashire district"
+West Lindsey,E07000142,"West Lindsey,west lindsey,west lindsey district,west lindsey district council"
+Walsall,E08000030,"Walsall,walsall,walsall council,walsall district"
+Wolverhampton,E08000031,"Wolverhampton,city of wolverhampton,city of wolverhampton district,wolverhampton,wolverhampton city council"
+West Midlands,E47000007,West Midlands CA
+Wandsworth,E09000032,"Wandsworth,london borough of wandsworth,wandsworth,wandsworth london boro"
+Windsor and Maidenhead,E06000040,"Windsor and Maidenhead,Windsor & Maidenhead UA,royal borough of windsor and maidenhead,windsor and maidenhead"
+West Northamptonshire,E06000062,West Northamptonshire
+Worcester,E07000237,"Worcester,worcester,worcester city,worcester city council,worcester district"
+Woking,E07000217,Woking
+Wokingham,E06000041,"Wokingham,Wokingham UA,wokingham,wokingham borough council"
+Worcestershire,E10000034,"Worcestershire,worcestershire,worcestershire county,worcestershire county council"
+Worthing,E07000229,"Worthing,adur and worthing borough council"
+West Oxfordshire,E07000181,West Oxfordshire
+Wirral,E08000015,"Wirral,wirral,wirral council,wirral district"
+Warrington,E06000007,"Warrington,Warrington UA,warrington,warrington borough council"
+West Suffolk,E07000245,West Suffolk
+Westminster,E09000033,"Westminster,city of westminster,city of westminster london boro,westminster,westminster city"
+West Sussex,E10000032,"West Sussex,west sussex,west sussex county,west sussex county council"
+Wychavon,E07000238,Wychavon
+West Yorkshire,E47000003,West Yorkshire CA
+Wyre Forest,E07000239,Wyre Forest
+Wyre,E07000128,"Wyre,wyre,wyre council,wyre district"
+York and North Yorkshire,E47000012,York and North Yorkshire CA
+York,E06000014,"York,York UA,city of york council,york"

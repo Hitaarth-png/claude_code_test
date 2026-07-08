@@ -52,6 +52,8 @@ def median(values):
 
 
 def load_geojson(path):
+    if not Path(path).exists():  # facility layer not sourced yet - treat as empty
+        return []
     return json.loads(Path(path).read_text(encoding="utf-8"))["features"]
 
 

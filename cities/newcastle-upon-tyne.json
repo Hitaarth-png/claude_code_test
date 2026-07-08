@@ -1,0 +1,9 @@
+{
+  "name": "Newcastle upon Tyne",
+  "slug": "newcastle-upon-tyne",
+  "lad_code": "E08000021",
+  "inputs": {
+    "_note": "Base data auto-built by scripts/prepare_city_data.py from GitHub mirrors (see that script's docstring for sources and approximations)."
+  },
+  "curated": {}
+}
