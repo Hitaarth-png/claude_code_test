@@ -9,8 +9,3 @@ default_city: wolverhampton
 
 cities:
   wolverhampton: { name: Wolverhampton, lad_code: E08000031, gias_la_code: 336 }
-  birmingham:    { name: Birmingham,    lad_code: E08000025, gias_la_code: 330 }
-  coventry:      { name: Coventry,      lad_code: E08000026, gias_la_code: 331 }
-  dudley:        { name: Dudley,        lad_code: E08000027, gias_la_code: 332 }
-  solihull:      { name: Solihull,      lad_code: E08000029, gias_la_code: 334 }
-  walsall:       { name: Walsall,       lad_code: E08000030, gias_la_code: 335 }
