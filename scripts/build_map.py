@@ -229,7 +229,7 @@ def main():
                         exclusive_groups=False, collapsed=False).add_to(m)
 
     Search(layer=ward_gj, search_label="ward_name", geom_type="Polygon",
-           placeholder="Search a ward", collapsed=True).add_to(m)
+           placeholder="Search a ward", position="topright", collapsed=True).add_to(m)
     Fullscreen().add_to(m)
     MiniMap(toggle_display=True).add_to(m)
     MousePosition(prefix="lat/lon:").add_to(m)
@@ -241,7 +241,7 @@ def main():
     default_field = next((f for _, f, s in bindings if s), bindings[0][1])
     css = """
     <style>
-    #cp-panel{position:fixed;top:70px;right:12px;width:250px;max-height:80vh;overflow:auto;
+    #cp-panel{position:fixed;top:80px;left:12px;width:240px;max-height:62vh;overflow:auto;
       z-index:9999;background:#fff;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,.3);
       font-family:sans-serif;padding:10px 12px;font-size:13px;}
     #cp-panel h3{margin:0 0 8px;font-size:15px;}
