@@ -5,7 +5,7 @@
 #   lad_code      ONS Local Authority District code (used for IoD + boundaries)
 #   gias_la_code  DfE/GIAS 3-digit LA number (used to filter the GIAS export)
 
-default_city: wolverhampton
+default_city: nottingham
 
 cities:
-  wolverhampton: { name: Wolverhampton, lad_code: E08000031, gias_la_code: 336 }
+  nottingham: { name: Nottingham, lad_code: E06000018, gias_la_code: 892 }
