@@ -1,0 +1,46 @@
+# Interactive City Plan — configuration
+# Default target: City of Wolverhampton (metropolitan borough).
+# To target another authority, change city.* and drop in the matching data files.
+
+city:
+  name: Wolverhampton
+  lad_code: E08000031        # ONS LAD/LA code for the City of Wolverhampton
+
+crs:
+  working: 27700             # British National Grid (metres) — used for area/joins
+  web: 4326                  # WGS84 lat/lon — used for the Leaflet output
+
+# Input data files. These are aggregate, public, LSOA/ward-level statistics only.
+# Obtain the real files from the sources listed in README.md and place them here.
+# If a file is missing, scripts/make_sample_data.py can generate a synthetic
+# stand-in so the pipeline runs end-to-end for demonstration.
+paths:
+  boundaries: data/lsoa_boundaries.geojson       # ONS LSOA (2021) boundaries
+  imd: data/imd2019.csv                           # IoD2019 IMD + IDACI scores/deciles
+  youth_population: data/youth_pop.csv            # ONS mid-year est., ages 0-15 per LSOA
+  lsoa_ward_lookup: data/lsoa_ward_lookup.csv     # ONS LSOA -> Ward lookup
+  assets:
+    schools: data/assets/schools.csv
+    football_pitches: data/assets/football_pitches.csv
+    football_providers: data/assets/football_providers.csv
+    youth_mobility_centres: data/assets/youth_mobility_centres.csv
+
+work_dir: build              # intermediate artefacts
+output_dir: output           # final map + geojson
+
+# Relative importance of each asset type when scoring provision / readiness.
+asset_weights:
+  schools: 1.0
+  football_pitches: 1.5
+  football_providers: 1.0
+  youth_mobility_centres: 1.0
+
+# Weights for the composite LSOA priority score (must sum to ~1.0).
+priority_weights:
+  idaci: 0.30                # deprivation affecting children
+  imd: 0.20                  # overall deprivation
+  youth_pop: 0.25            # size of the youth cohort
+  inverse_provision: 0.25    # scarcity of existing provision
+
+# Number of bands for the coverage-level classification.
+coverage_bands: 5

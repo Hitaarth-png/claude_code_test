@@ -2,3 +2,7 @@ pandas
 geopandas
 shapely
 matplotlib
+folium
+branca
+pyyaml
+openpyxl

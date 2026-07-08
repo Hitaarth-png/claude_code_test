@@ -1,0 +1,5 @@
+# Synthetic/downloaded inputs and intermediate artefacts — regenerable.
+data/
+build/
+__pycache__/
+*.pyc
