@@ -56,6 +56,19 @@ raw government headers work unchanged. Real files are **never overwritten** —
 `paths.boundaries` is auto-generated from `imd_raw` (2021 LSOA geometry); the
 `lsoa_ward_lookup` is derived by spatially assigning LSOAs to ward polygons.
 
+### Youth population (0–15) — trimming the big ONS file
+
+The full ONS LSOA population file is large (single year of age × ~35k LSOAs).
+Shrink it locally to the tiny input the pipeline needs:
+
+```bash
+python scripts/trim_ons_population.py <ons_file.xlsx> --sheet "Mid-2022 Persons"
+```
+
+It auto-detects the header row, the LSOA code column and the age columns, sums
+ages 0–15, keeps only this city's LSOAs, and writes
+`data/youth_pop.csv` (~161 rows). Adjust the cohort with `--min-age/--max-age`.
+
 ### Indices of Deprivation (IMD/IDACI)
 
 Drop a raw IoD LSOA-2021 CSV at `paths.imd_raw`. `prepare_imd.py` filters it to
