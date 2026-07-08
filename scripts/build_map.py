@@ -137,14 +137,20 @@ def add_assets(m, cfg):
         if lon is None or lat is None:
             continue
         color, label = ASSET_STYLE[key]
+        singular = label[:-1] if label.endswith("s") else label
         name_col = find_column(df.columns, ["name"])
         fg = folium.FeatureGroup(name=label, show=False, control=False)
         cluster = MarkerCluster().add_to(fg)
         for _, row in df.iterrows():
+            nm = str(row[name_col]).strip() if name_col and str(row[name_col]).strip() else singular
             folium.CircleMarker(
                 [row[lat], row[lon]], radius=5, color=color, fill=True, fill_opacity=0.9,
-                tooltip=f"{label[:-1] if label.endswith('s') else label}: "
-                        f"{row[name_col] if name_col else ''}").add_to(cluster)
+                # Permanent label so the name is visible on the pin itself.
+                tooltip=folium.Tooltip(nm, permanent=True, direction="top",
+                                       className="cp-pin-label"),
+                popup=folium.Popup(f'<b>{nm}</b><br><span style="color:{color}">{singular}</span>',
+                                   max_width=220),
+            ).add_to(cluster)
         fg.add_to(m)
         groups.append(fg)
     return groups
@@ -254,6 +260,9 @@ def main():
     .cp-rank li{display:flex;justify-content:space-between;padding:4px 6px;cursor:pointer;border-radius:4px;}
     .cp-rank li:hover{background:#f0e6f2;} .cp-rank li b{color:#7a0177;}
     .cp-note{font-size:11px;color:#777;margin:8px 0 0;}
+    .cp-pin-label{background:rgba(255,255,255,.9);border:0;box-shadow:0 1px 2px rgba(0,0,0,.3);
+      font-size:11px;font-family:sans-serif;padding:1px 5px;white-space:nowrap;}
+    .cp-pin-label:before{display:none;}
     #cp-legends{position:fixed;bottom:24px;left:12px;z-index:9999;background:#fff;
       border-radius:6px;box-shadow:0 1px 6px rgba(0,0,0,.3);padding:8px 10px;font-family:sans-serif;
       font-size:12px;min-width:150px;} #cp-legends .cp-legend b{font-size:12px;}
