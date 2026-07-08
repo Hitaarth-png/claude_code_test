@@ -51,12 +51,16 @@ def load_lookup(path) -> pd.DataFrame:
     code = find_column(df.columns, ["lsoa", "code"]) or find_column(df.columns, ["lsoa"], exclude=["name"])
     ward = find_column(df.columns, ["ward", "name"]) or find_column(df.columns, ["ward"], exclude=["code"]) \
         or find_column(df.columns, ["wd", "nm"])
+    name = find_column(df.columns, ["lsoa", "name"])
     if code is None or ward is None:
         raise SystemExit(f"Lookup missing LSOA code / ward name. Columns: {list(df.columns)}")
-    return pd.DataFrame({
+    out = pd.DataFrame({
         "lsoa_code": clean_codes(df[code]),
         "ward_name": df[ward].astype(str).str.strip(),
-    }).drop_duplicates("lsoa_code")
+    })
+    if name is not None:
+        out["lsoa_name"] = df[name].astype(str).str.strip()
+    return out.drop_duplicates("lsoa_code")
 
 
 def main():
