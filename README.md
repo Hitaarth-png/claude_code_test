@@ -1,6 +1,6 @@
-# Interactive City Plan — Wolverhampton
+# Interactive City Plan — Nottingham
 
-An interactive Leaflet map of the City of Wolverhampton (LAD `E08000031`) that
+An interactive Leaflet map of the City of Nottingham (LAD `E06000018`) that
 overlays youth-provision need and supply at LSOA and ward level, with derived
 analysis layers for prioritising investment.
 
@@ -32,7 +32,7 @@ pupil-level, or safeguarding data.
 
 ```bash
 pip install -r requirements.txt
-python scripts/run_pipeline.py --city wolverhampton   # one city -> output/wolverhampton/city_plan.html
+python scripts/run_pipeline.py --city nottingham   # one city -> output/nottingham/city_plan.html
 python scripts/run_all.py                             # every city in cities.yaml + output/index.html
 ```
 
@@ -87,15 +87,18 @@ magnitude from the national rank (or decile) where no raw score is provided.
 
 Drop a raw **GIAS** export (Get Information About Schools, gov.uk) at `raw.gias`.
 `prepare_gias.py` keeps open establishments whose GIAS LA code matches the city's
-`gias_la_code` (from `cities.yaml`; Wolverhampton = `336`), converts
+`gias_la_code` (from `cities.yaml`; Nottingham = `892`), converts
 Easting/Northing to lon/lat, and writes real `schools.csv` and
 `youth_mobility_centres.csv` (children's centres). Only establishment
 **name + location + type** are used — no pupil, FSM, or staff fields.
 
-**Current layer status:** boundaries (LSOA 2021), IMD/IDACI deprivation, schools
-and youth-mobility centres are **real**; youth population (0–15) and football
-pitches/providers remain **synthetic** demo data on real geometry until their
-real sources are supplied.
+**Current layer status (Nottingham):** boundaries (ONS LSOA/ward geometry) and
+schools + youth-mobility centres (GIAS export) are **real**; IMD/IDACI
+deprivation, youth population (0–15), and football pitches/providers remain
+**synthetic** demo data on real geometry until their real sources are supplied.
+Because the derived scores (priority, cold-spots, coverage, readiness) are
+weighted mostly on deprivation + youth + provision, they stay **indicative
+only** until those inputs are real.
 
 ## Pipeline stages (`scripts/`)
 

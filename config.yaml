@@ -20,7 +20,7 @@ crs:
 # Drop these in once; every city reads from them.
 raw:
   imd: data/raw/imd_wmca_lsoa2021.csv      # Indices of Deprivation, LSOA 2021 (incl. geometry)
-  gias: data/raw/gias_wolverhampton.csv    # GIAS establishment export
+  gias: data/raw/gias.csv                  # GIAS establishment export (filtered per city by gias_la_code)
 
 # Public mirror for ward geometry (LSOA fallback) — {lad} filled per city.
 boundary_source:
