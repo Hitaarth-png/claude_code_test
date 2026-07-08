@@ -17,8 +17,9 @@ crs:
 # stand-in so the pipeline runs end-to-end for demonstration.
 paths:
   gias_raw: data/raw/gias_wolverhampton.csv       # raw GIAS establishment export (real schools/centres)
-  boundaries: data/lsoa_boundaries.geojson       # ONS LSOA (2021) boundaries
-  imd: data/imd2019.csv                           # IoD2019 IMD + IDACI scores/deciles
+  imd_raw: data/raw/imd_wmca_lsoa2021.csv         # raw Indices of Deprivation export (LSOA 2021, incl. geometry)
+  boundaries: data/lsoa_boundaries.geojson       # LSOA (2021) boundaries (from imd_raw if present)
+  imd: data/imd.csv                               # IMD + IDACI deciles/ranks per LSOA
   youth_population: data/youth_pop.csv            # ONS mid-year est., ages 0-15 per LSOA
   lsoa_ward_lookup: data/lsoa_ward_lookup.csv     # ONS LSOA -> Ward lookup
   assets:

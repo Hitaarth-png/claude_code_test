@@ -13,23 +13,41 @@ import pandas as pd
 from common import clean_codes, find_column, load_config, read_table, resolve
 
 
+def _deprivation_score(df, keywords):
+    """A 0-1 deprivation magnitude (1 = most deprived) from the best available
+    field: a real score, else national rank (1 = most deprived), else decile."""
+    score = find_column(df.columns, keywords + ["score"])
+    if score is not None:
+        return pd.to_numeric(df[score], errors="coerce")
+    rank = find_column(df.columns, keywords + ["rank"])
+    if rank is not None:
+        r = pd.to_numeric(df[rank], errors="coerce")
+        return (r.max() - r) / (r.max() - r.min())          # invert: rank 1 -> 1.0
+    dec = find_column(df.columns, keywords + ["decile"])
+    if dec is not None:
+        d = pd.to_numeric(df[dec], errors="coerce")
+        return (10 - d) / 9                                   # decile 1 -> 1.0
+    return None
+
+
 def load_imd(path) -> pd.DataFrame:
     df = read_table(path)
     code = find_column(df.columns, ["lsoa", "code"]) or find_column(df.columns, ["lsoa"])
-    cols = {
-        "idaci_score": find_column(df.columns, ["idaci", "score"]),
-        "imd_score": find_column(df.columns, ["imd", "score"])
-        or find_column(df.columns, ["index", "multiple", "score"]),
-        "idaci_decile": find_column(df.columns, ["idaci", "decile"]),
-        "imd_decile": find_column(df.columns, ["imd", "decile"])
-        or find_column(df.columns, ["index", "multiple", "decile"]),
-    }
-    if code is None or cols["idaci_score"] is None:
-        raise SystemExit(f"IMD file missing LSOA code / IDACI score. Columns: {list(df.columns)}")
+    if code is None:
+        raise SystemExit(f"IMD file missing LSOA code. Columns: {list(df.columns)}")
     out = pd.DataFrame({"lsoa_code": clean_codes(df[code])})
-    for name, src in cols.items():
-        if src is not None:
-            out[name] = pd.to_numeric(df[src], errors="coerce")
+    out["idaci_score"] = _deprivation_score(df, ["idaci"])
+    out["imd_score"] = _deprivation_score(df, ["multiple"]) if find_column(df.columns, ["multiple"]) \
+        else _deprivation_score(df, ["imd"])
+    # Carry deciles through for display (1 = most deprived).
+    idaci_dec = find_column(df.columns, ["idaci", "decile"])
+    imd_dec = find_column(df.columns, ["multiple", "decile"]) or find_column(df.columns, ["imd", "decile"])
+    if idaci_dec is not None:
+        out["idaci_decile"] = pd.to_numeric(df[idaci_dec], errors="coerce")
+    if imd_dec is not None:
+        out["imd_decile"] = pd.to_numeric(df[imd_dec], errors="coerce")
+    if out["idaci_score"] is None or out["idaci_score"].isna().all():
+        raise SystemExit(f"IMD file has no usable IDACI score/rank/decile. Columns: {list(df.columns)}")
     return out
 
 

@@ -37,6 +37,12 @@ def main():
 
     # Convert any supplied raw GIAS export into real school / youth-centre assets
     # before the sample step, so those real files pre-exist and are kept.
+    # Real Indices of Deprivation supply both the IMD table and 2021 boundaries;
+    # run it first so its geometry drives everything downstream.
+    imd_raw = cfg["paths"].get("imd_raw")
+    if imd_raw and resolve(imd_raw).exists():
+        run("prepare_imd")
+
     gias_raw = cfg["paths"].get("gias_raw")
     if gias_raw and resolve(gias_raw).exists():
         run("prepare_gias")

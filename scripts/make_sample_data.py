@@ -33,14 +33,27 @@ def fetch(url: str, dest: Path) -> Path:
 def load_real_boundaries(cfg):
     lad = cfg["city"]["lad_code"]
     src = cfg["boundary_source"]
-    lsoa_raw = fetch(src["lsoa"].format(lad=lad), resolve(str(RAW_DIR / f"lsoa_{lad}.json")))
     ward_raw = fetch(src["wards"].format(lad=lad), resolve(str(RAW_DIR / f"wards_{lad}.json")))
 
-    lsoas = gpd.read_file(lsoa_raw)
-    code = "LSOA11CD" if "LSOA11CD" in lsoas else next(c for c in lsoas.columns if "CD" in str(c).upper())
-    name = "LSOA11NM" if "LSOA11NM" in lsoas else code
-    lsoas = lsoas.rename(columns={code: "lsoa_code", name: "lsoa_name"})[
-        ["lsoa_code", "lsoa_name", "geometry"]].set_crs(4326, allow_override=True)
+    # Prefer an already-written boundary file (e.g. real 2021 geometry from
+    # prepare_imd) so synthetic attributes share the same LSOA set; otherwise
+    # fall back to the public mirror.
+    bpath = resolve(cfg["paths"]["boundaries"])
+    if bpath.exists():
+        lsoas = gpd.read_file(bpath).to_crs(4326)
+        if "lsoa_code" not in lsoas.columns:
+            code = next(c for c in lsoas.columns if "CD" in str(c).upper())
+            lsoas = lsoas.rename(columns={code: "lsoa_code"})
+        if "lsoa_name" not in lsoas.columns:
+            lsoas["lsoa_name"] = lsoas["lsoa_code"]
+        lsoas = lsoas[["lsoa_code", "lsoa_name", "geometry"]]
+    else:
+        lsoa_raw = fetch(src["lsoa"].format(lad=lad), resolve(str(RAW_DIR / f"lsoa_{lad}.json")))
+        lsoas = gpd.read_file(lsoa_raw)
+        code = "LSOA11CD" if "LSOA11CD" in lsoas else next(c for c in lsoas.columns if "CD" in str(c).upper())
+        name = "LSOA11NM" if "LSOA11NM" in lsoas else code
+        lsoas = lsoas.rename(columns={code: "lsoa_code", name: "lsoa_name"})[
+            ["lsoa_code", "lsoa_name", "geometry"]].set_crs(4326, allow_override=True)
 
     wards = gpd.read_file(ward_raw)
     wname = next((c for c in wards.columns if str(c).upper().endswith("NM") and "NMW" not in str(c).upper()),

@@ -26,8 +26,8 @@ from common import find_column, load_config, read_table, resolve
 # (field, display name, viridis-family palette, default-visible?)
 CHOROPLETHS = [
     ("priority_score", "Priority score", "magma", True),
-    ("idaci_score", "IDACI score", "inferno", False),
-    ("imd_score", "IMD score", "viridis", False),
+    ("idaci_score", "IDACI deprivation", "inferno", False),
+    ("imd_score", "IMD deprivation", "viridis", False),
     ("youth_population", "Youth population (0-15)", "viridis", False),
     ("need_score", "Need score", "plasma", False),
     ("infrastructure_readiness", "Infrastructure readiness", "viridis", False),
@@ -50,7 +50,7 @@ ASSET_KEYS = list(ASSET_STYLE.keys())
 TOOLTIP = [("lsoa_name", "LSOA"), ("ward_name", "Ward"), ("priority_score", "Priority")]
 POPUP = [
     ("lsoa_code", "LSOA code"), ("lsoa_name", "LSOA"), ("ward_name", "Ward"),
-    ("idaci_score", "IDACI score"), ("imd_score", "IMD score"),
+    ("imd_decile", "IMD decile (1=most deprived)"), ("idaci_decile", "IDACI decile (1=most deprived)"),
     ("youth_population", "Youth 0-15"), ("assets_total", "Assets (in LSOA)"),
     ("asset_summary", "Asset breakdown"), ("provision_per_1000_youth", "Provision / 1k youth"),
     ("infrastructure_readiness", "Infrastructure readiness"),

@@ -49,11 +49,20 @@ raw government headers work unchanged. Real files are **never overwritten** —
 
 | Config path | Source |
 |---|---|
-| `paths.boundaries` | ONS Open Geography Portal — LSOA (2011) boundaries, filtered to Wolverhampton |
-| `paths.imd` | English Indices of Deprivation 2019 (gov.uk) — IMD + IDACI scores/deciles per LSOA |
+| `paths.imd_raw` | Indices of Deprivation export (LSOA 2021, incl. `geom`) — supplies IMD/IDACI **and** boundaries |
 | `paths.youth_population` | ONS mid-year population estimates — ages 0–15 per LSOA |
-| `paths.lsoa_ward_lookup` | ONS LSOA → Ward best-fit lookup |
 | `paths.assets.*` | Point data (lon/lat or easting/northing) for football pitches/providers (FA / Active Places) |
+
+`paths.boundaries` is auto-generated from `imd_raw` (2021 LSOA geometry); the
+`lsoa_ward_lookup` is derived by spatially assigning LSOAs to ward polygons.
+
+### Indices of Deprivation (IMD/IDACI)
+
+Drop a raw IoD LSOA-2021 CSV at `paths.imd_raw`. `prepare_imd.py` filters it to
+`city.lad_code`, writes the IMD/IDACI **deciles + ranks** (`paths.imd`) and the
+**2021 LSOA boundaries** (from the embedded `geom`), keeping the deprivation and
+geometry on the same LSOA vintage. `ingest.py` derives a 0–1 deprivation
+magnitude from the national rank (or decile) where no raw score is provided.
 
 ### Schools & youth-mobility centres — GIAS
 
@@ -64,16 +73,18 @@ lon/lat, and writes real `schools.csv` (114 schools) and
 `youth_mobility_centres.csv` (16 children's centres). Only establishment
 **name + location + type** are used — no pupil, FSM, or staff fields.
 
-**Current layer status:** schools and youth-mobility centres are **real**
-(GIAS); IMD/IDACI, youth population, and football pitches/providers are
-**synthetic** demo data on real geometry until their real sources are supplied.
+**Current layer status:** boundaries (LSOA 2021), IMD/IDACI deprivation, schools
+and youth-mobility centres are **real**; youth population (0–15) and football
+pitches/providers remain **synthetic** demo data on real geometry until their
+real sources are supplied.
 
 ## Pipeline stages (`scripts/`)
 
 | Stage | Script | Output |
 |---|---|---|
-| 0a | `prepare_gias.py` | real `data/assets/schools.csv`, `…/youth_mobility_centres.csv` |
-| 0b | `make_sample_data.py` | real ONS boundaries + synthetic fill for missing inputs (`data/`) |
+| 0a | `prepare_imd.py` | real IMD/IDACI (`data/imd.csv`) + 2021 boundaries |
+| 0b | `prepare_gias.py` | real `data/assets/schools.csv`, `…/youth_mobility_centres.csv` |
+| 0c | `make_sample_data.py` | synthetic fill for missing inputs, on real geometry (`data/`) |
 | 1 | `ingest.py` | `build/lsoa_attributes.csv` |
 | 2 | `geocode_assets.py` | `build/asset_counts_lsoa.csv` |
 | 3 | `build_metrics.py` | `build/lsoa_metrics.csv`, `build/ward_metrics.csv` |
