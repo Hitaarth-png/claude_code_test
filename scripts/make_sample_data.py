@@ -1,135 +1,138 @@
-"""Generate SYNTHETIC stand-in data so the pipeline runs end-to-end without the
-real gov.uk/ONS downloads.
+"""Generate demonstration data on top of the REAL city boundary geometry.
 
-Everything produced here is fabricated (a grid of pseudo-LSOAs over roughly the
-Wolverhampton area). It is for demonstrating and verifying the pipeline only —
-NOT for analysis. Replace with the real files listed in README.md for real work.
+Geometry is genuine ONS LSOA / ward boundary data for the configured authority
+(fetched from a public mirror, so the map has the true city shape). Only the
+attribute values (IDACI, IMD, youth population) and asset points are SYNTHETIC —
+fabricated for pipeline demonstration, NOT for analysis. Replace the attribute
+and asset files with the real gov.uk/ONS/FA sources for real work.
 """
 from __future__ import annotations
 
-import math
 import random
+import subprocess
 from pathlib import Path
 
 import geopandas as gpd
 import pandas as pd
-from shapely.geometry import Point, box
+from shapely.geometry import Point
 
 from common import load_config, resolve
 
-# Rough British National Grid (EPSG:27700) bounding box for Wolverhampton.
-EAST_MIN, EAST_MAX = 388000, 397000
-NORTH_MIN, NORTH_MAX = 295000, 302000
-N_COLS, N_ROWS = 12, 12          # 144 pseudo-LSOAs
-WARD_COLS, WARD_ROWS = 5, 4      # -> 20 pseudo-wards
-
-WARD_NAMES = [
-    "Bilston East", "Bilston North", "Blakenhall", "Bushbury North",
-    "Bushbury South & Low Hill", "East Park", "Ettingshall", "Fallings Park",
-    "Graiseley", "Heath Town", "Merry Hill", "Oxley", "Park", "Penn",
-    "Spring Vale", "St Peter's", "Tettenhall Regis", "Tettenhall Wightwick",
-    "Wednesfield North", "Wednesfield South",
-]
+RAW_DIR = Path("data/raw")
 
 
-def build_lsoas(rng: random.Random):
-    dx = (EAST_MAX - EAST_MIN) / N_COLS
-    dy = (NORTH_MAX - NORTH_MIN) / N_ROWS
-    cx, cy = (EAST_MIN + EAST_MAX) / 2, (NORTH_MIN + NORTH_MAX) / 2
-    max_r = math.hypot(EAST_MAX - cx, NORTH_MAX - cy)
-
-    rows = []
-    for r in range(N_ROWS):
-        for c in range(N_COLS):
-            e0 = EAST_MIN + c * dx
-            n0 = NORTH_MIN + r * dy
-            geom = box(e0, n0, e0 + dx, n0 + dy)
-            code = f"E01{35000 + r * N_COLS + c:06d}"
-            row_grp = min(r * WARD_ROWS // N_ROWS, WARD_ROWS - 1)
-            col_grp = min(c * WARD_COLS // N_COLS, WARD_COLS - 1)
-            ward = WARD_NAMES[row_grp * WARD_COLS + col_grp]
-            # Deprivation rises toward the centre; add noise.
-            centre_e, centre_n = e0 + dx / 2, n0 + dy / 2
-            proximity = 1 - math.hypot(centre_e - cx, centre_n - cy) / max_r
-            depriv = max(0.02, min(0.6, 0.15 + 0.35 * proximity + rng.uniform(-0.08, 0.08)))
-            imd_score = max(1, min(80, 10 + 60 * proximity + rng.uniform(-8, 8)))
-            youth = int(150 + 500 * proximity + rng.uniform(-80, 120))
-            rows.append({
-                "lsoa_code": code,
-                "lsoa_name": f"Wolverhampton {code[-3:]}",
-                "ward_name": ward,
-                "geometry": geom,
-                "_idaci": round(depriv, 4),
-                "_imd": round(imd_score, 2),
-                "_youth": max(30, youth),
-            })
-    return gpd.GeoDataFrame(rows, crs="EPSG:27700")
+def fetch(url: str, dest: Path) -> Path:
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if dest.exists() and dest.stat().st_size > 100:
+        return dest
+    print(f"Downloading {url}")
+    subprocess.run(["curl", "-sSf", "--max-time", "60", "-o", str(dest), url], check=True)
+    return dest
 
 
-def rank_to_decile(series: pd.Series, ascending: bool) -> pd.Series:
-    # 1 = most deprived (English IoD convention).
+def load_real_boundaries(cfg):
+    lad = cfg["city"]["lad_code"]
+    src = cfg["boundary_source"]
+    lsoa_raw = fetch(src["lsoa"].format(lad=lad), resolve(str(RAW_DIR / f"lsoa_{lad}.json")))
+    ward_raw = fetch(src["wards"].format(lad=lad), resolve(str(RAW_DIR / f"wards_{lad}.json")))
+
+    lsoas = gpd.read_file(lsoa_raw)
+    code = "LSOA11CD" if "LSOA11CD" in lsoas else next(c for c in lsoas.columns if "CD" in str(c).upper())
+    name = "LSOA11NM" if "LSOA11NM" in lsoas else code
+    lsoas = lsoas.rename(columns={code: "lsoa_code", name: "lsoa_name"})[
+        ["lsoa_code", "lsoa_name", "geometry"]].set_crs(4326, allow_override=True)
+
+    wards = gpd.read_file(ward_raw)
+    wname = next((c for c in wards.columns if str(c).upper().endswith("NM") and "NMW" not in str(c).upper()),
+                 wards.columns[1])
+    wards = wards.rename(columns={wname: "ward_name"})[["ward_name", "geometry"]].set_crs(
+        4326, allow_override=True)
+    return lsoas, wards
+
+
+def assign_wards(lsoas, wards, work_crs):
+    """Spatially assign each LSOA to its ward via the LSOA's representative point."""
+    l = lsoas.to_crs(work_crs).copy()
+    w = wards.to_crs(work_crs)
+    pts = l.copy()
+    pts["geometry"] = l.geometry.representative_point()
+    joined = gpd.sjoin(pts, w[["ward_name", "geometry"]], how="left", predicate="within")
+    joined = joined[~joined.index.duplicated(keep="first")]
+    l["ward_name"] = joined["ward_name"].fillna("Unassigned").values
+    return l
+
+
+def sample_points(polygon, n, rng):
+    minx, miny, maxx, maxy = polygon.bounds
+    out = []
+    while len(out) < n:
+        p = Point(rng.uniform(minx, maxx), rng.uniform(miny, maxy))
+        if polygon.contains(p):
+            out.append(p)
+    return out
+
+
+def rank_to_decile(series, ascending):
     order = series.rank(ascending=ascending, method="first")
     return (pd.qcut(order, 10, labels=False, duplicates="drop") + 1).astype(int)
 
 
-def scatter(rng, n):
-    return [Point(rng.uniform(EAST_MIN, EAST_MAX), rng.uniform(NORTH_MIN, NORTH_MAX))
-            for _ in range(n)]
-
-
-def write_points(gdf_wgs, points, cols, path: Path):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    g = gpd.GeoDataFrame(cols, geometry=points, crs="EPSG:27700").to_crs(4326)
-    df = pd.DataFrame(cols)
-    df["lon"] = g.geometry.x
-    df["lat"] = g.geometry.y
-    df.to_csv(path, index=False)
-
-
 def main():
     cfg = load_config()
-    rng = random.Random(20260708)  # deterministic
+    work_crs = cfg["crs"]["working"]
+    rng = random.Random(20260708)
 
-    lsoas = build_lsoas(rng)
+    lsoas, wards = load_real_boundaries(cfg)
+    l = assign_wards(lsoas, wards, work_crs)  # projected, with ward_name
 
-    # Boundaries (WGS84 GeoJSON, like the real ONS export).
-    bnd = lsoas[["lsoa_code", "lsoa_name", "geometry"]].to_crs(4326)
+    # Boundaries output (WGS84), like a real ONS export.
     bpath = resolve(cfg["paths"]["boundaries"])
     bpath.parent.mkdir(parents=True, exist_ok=True)
-    bnd.to_file(bpath, driver="GeoJSON")
+    l.to_crs(4326)[["lsoa_code", "lsoa_name", "geometry"]].to_file(bpath, driver="GeoJSON")
 
-    # LSOA -> Ward lookup.
-    lsoas[["lsoa_code", "lsoa_name", "ward_name"]].to_csv(
+    # LSOA -> ward lookup.
+    l[["lsoa_code", "lsoa_name", "ward_name"]].to_csv(
         resolve(cfg["paths"]["lsoa_ward_lookup"]), index=False)
 
-    # IMD / IDACI table.
-    imd = lsoas[["lsoa_code", "lsoa_name"]].copy()
-    imd["IDACI Score"] = lsoas["_idaci"].values
-    imd["IMD Score"] = lsoas["_imd"].values
-    imd["IDACI Decile"] = rank_to_decile(lsoas["_idaci"], ascending=True).values
-    imd["IMD Decile"] = rank_to_decile(lsoas["_imd"], ascending=True).values
-    imd.to_csv(resolve(cfg["paths"]["imd"]), index=False)
+    # Synthetic attributes with a real spatial gradient (deprivation rises toward
+    # the geographic centre; noise added).
+    cent = l.geometry.representative_point()
+    cx, cy = cent.x.mean(), cent.y.mean()
+    dist = ((cent.x - cx) ** 2 + (cent.y - cy) ** 2) ** 0.5
+    prox = 1 - (dist / dist.max())
+    l = l.reset_index(drop=True)
+    idaci = (0.15 + 0.35 * prox + pd.Series([rng.uniform(-0.08, 0.08) for _ in range(len(l))])).clip(0.02, 0.6)
+    imd = (10 + 60 * prox + pd.Series([rng.uniform(-8, 8) for _ in range(len(l))])).clip(1, 85)
+    youth = (150 + 500 * prox + pd.Series([rng.uniform(-80, 120) for _ in range(len(l))])).clip(lower=40).astype(int)
 
-    # Youth population 0-15.
-    yp = lsoas[["lsoa_code"]].copy()
-    yp["youth_population_0_15"] = lsoas["_youth"].values
-    yp.to_csv(resolve(cfg["paths"]["youth_population"]), index=False)
+    imd_df = pd.DataFrame({
+        "lsoa_code": l["lsoa_code"], "lsoa_name": l["lsoa_name"],
+        "IDACI Score": idaci.round(4), "IMD Score": imd.round(2),
+        "IDACI Decile": rank_to_decile(idaci, ascending=True),
+        "IMD Decile": rank_to_decile(imd, ascending=True),
+    })
+    imd_df.to_csv(resolve(cfg["paths"]["imd"]), index=False)
+    pd.DataFrame({"lsoa_code": l["lsoa_code"], "youth_population_0_15": youth}).to_csv(
+        resolve(cfg["paths"]["youth_population"]), index=False)
 
-    # Asset point files, denser where deprivation is lower (provision gaps).
+    # Synthetic asset points scattered within the REAL city polygon.
+    city_poly = l.geometry.union_all() if hasattr(l.geometry, "union_all") else l.geometry.unary_union
     assets = cfg["paths"]["assets"]
-    for key, n, name_prefix in [
-        ("schools", 78, "School"),
-        ("football_pitches", 46, "Pitch"),
-        ("football_providers", 28, "Provider"),
-        ("youth_mobility_centres", 12, "Youth Centre"),
+    for key, n, prefix in [
+        ("schools", 80, "School"), ("football_pitches", 48, "Pitch"),
+        ("football_providers", 30, "Provider"), ("youth_mobility_centres", 12, "Youth Centre"),
     ]:
-        pts = scatter(rng, n)
-        cols = [{"name": f"{name_prefix} {i+1}"} for i in range(n)]
-        write_points(lsoas, pts, cols, resolve(assets[key]))
+        pts = sample_points(city_poly, n, rng)
+        g = gpd.GeoSeries(pts, crs=work_crs).to_crs(4326)
+        df = pd.DataFrame({"name": [f"{prefix} {i+1}" for i in range(n)],
+                           "lon": g.x.values, "lat": g.y.values})
+        path = resolve(assets[key])
+        path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(path, index=False)
 
-    print(f"Wrote synthetic data for {cfg['city']['name']} "
-          f"({len(lsoas)} pseudo-LSOAs, {len(WARD_NAMES)} pseudo-wards).")
-    print("NOTE: fabricated data for pipeline demonstration only.")
+    print(f"Real geometry for {cfg['city']['name']}: {len(l)} LSOAs, "
+          f"{l['ward_name'].nunique()} wards.")
+    print("NOTE: geometry is real; attributes & assets are synthetic (demo only).")
 
 
 if __name__ == "__main__":

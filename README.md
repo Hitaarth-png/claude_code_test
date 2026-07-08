@@ -31,9 +31,11 @@ pip install -r requirements.txt
 python scripts/run_pipeline.py           # builds output/city_plan.html
 ```
 
-With no input files present, the pipeline generates **synthetic demonstration
-data** so it runs end-to-end. Fabricated data is for verifying the pipeline
-only — not for analysis. Use `--no-sample` to require real inputs instead.
+With no input files present, the pipeline fetches the **real ONS LSOA/ward
+boundary geometry** for the configured authority (so the map has the true city
+shape) and layers **synthetic attributes and asset points** on top so it runs
+end-to-end. The fabricated attributes are for verifying the pipeline only — not
+for analysis. Use `--no-sample` to require real inputs instead.
 
 Open `output/city_plan.html` in a browser (needs internet for the basemap
 tiles). Toggle layers via the control top-right; hover an LSOA for its stats.
@@ -56,7 +58,7 @@ raw government headers work unchanged.
 
 | Stage | Script | Output |
 |---|---|---|
-| 0 | `make_sample_data.py` | synthetic stand-in inputs (`data/`) |
+| 0 | `make_sample_data.py` | real ONS boundaries + synthetic attributes (`data/`) |
 | 1 | `ingest.py` | `build/lsoa_attributes.csv` |
 | 2 | `geocode_assets.py` | `build/asset_counts_lsoa.csv` |
 | 3 | `build_metrics.py` | `build/lsoa_metrics.csv`, `build/ward_metrics.csv` |

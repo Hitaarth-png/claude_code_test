@@ -28,6 +28,12 @@ paths:
 work_dir: build              # intermediate artefacts
 output_dir: output           # final map + geojson
 
+# Public boundary mirror used by make_sample_data.py to fetch the REAL city
+# outline (ONS LSOA/ward geometry) when no local boundary file is supplied.
+boundary_source:
+  lsoa: "https://raw.githubusercontent.com/martinjc/UK-GeoJSON/master/json/statistical/eng/lsoa_by_lad/{lad}.json"
+  wards: "https://raw.githubusercontent.com/martinjc/UK-GeoJSON/master/json/electoral/eng/wards_by_lad/{lad}.json"
+
 # Relative importance of each asset type when scoring provision / readiness.
 asset_weights:
   schools: 1.0
