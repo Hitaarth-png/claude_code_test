@@ -4,5 +4,5 @@ shapely
 matplotlib
 folium
 branca
-numpy
+pyyaml
 openpyxl

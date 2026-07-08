@@ -1,2 +1,12 @@
+# Synthetic/downloaded inputs and intermediate artefacts — regenerable.
+data/
+build/
+
+# Generated city-plan outputs — regenerable via scripts/run_pipeline.py / run_all.py
+output/city_plan.html
+output/city_plan_lsoa.geojson
+output/city_plan_wards.geojson
+output/index.html
+output/*/
 __pycache__/
 *.pyc

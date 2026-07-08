@@ -1,0 +1,54 @@
+# Interactive City Plan — pipeline configuration (city-agnostic).
+# Per-city identifiers live in cities.yaml. Select a city with
+#   python scripts/run_pipeline.py --city <slug>
+# or build them all with scripts/run_all.py.
+#
+# All inputs are aggregate, public, LSOA/ward-level statistics or public
+# facility registers — no personal or safeguarding data.
+
+# Base directories. Per-city derived data/build/output are namespaced under
+# these by slug (e.g. data/wolverhampton/…, output/birmingham/…).
+data_dir: data
+work_dir: build
+output_dir: output
+
+crs:
+  working: 27700             # British National Grid (metres) — joins/areas
+  web: 4326                  # WGS84 lat/lon — Leaflet output
+
+# Shared NATIONAL/REGIONAL raw inputs, filtered to each city by its codes.
+# Drop these in once; every city reads from them.
+raw:
+  imd: data/raw/imd_wmca_lsoa2021.csv      # Indices of Deprivation, LSOA 2021 (incl. geometry)
+  gias: data/raw/gias_wolverhampton.csv    # GIAS establishment export
+
+# Public mirror for ward geometry (LSOA fallback) — {lad} filled per city.
+boundary_source:
+  lsoa: "https://raw.githubusercontent.com/martinjc/UK-GeoJSON/master/json/statistical/eng/lsoa_by_lad/{lad}.json"
+  wards: "https://raw.githubusercontent.com/martinjc/UK-GeoJSON/master/json/electoral/eng/wards_by_lad/{lad}.json"
+
+# Relative importance of each asset type for provision / readiness.
+asset_weights:
+  schools: 1.0
+  football_pitches: 1.5
+  football_providers: 1.0
+  youth_mobility_centres: 1.0
+
+# Weights for the composite LSOA priority score (must sum to ~1.0).
+priority_weights:
+  idaci: 0.30
+  imd: 0.20
+  youth_pop: 0.25
+  inverse_provision: 0.25
+
+coverage_bands: 5
+
+# How provision is measured for each LSOA:
+#   method: catchment  -> distance-decayed count of assets within radius_m of the
+#                         LSOA centre (assets just over a border still count)
+#           containment -> assets strictly inside the LSOA only
+#   decay:  none | linear | gaussian  (weight vs distance within the catchment)
+provision:
+  method: catchment
+  radius_m: 1500
+  decay: linear
