@@ -39,6 +39,10 @@ def main():
     la_code = cfg["city"]["gias_la_code"]
     df = df[(df["EstablishmentStatus (name)"] == "Open") & (df["LA (code)"] == la_code)]
     df = df.dropna(subset=["Easting", "Northing", "EstablishmentName"])
+    if df.empty:
+        print(f"No GIAS rows for {cfg['city']['name']} (LA {la_code}); "
+              f"leaving school/centre layers to the synthetic step.")
+        return
 
     is_cc = df["EstablishmentTypeGroup (name)"] == CHILDRENS_CENTRE_GROUP
     schools = to_lonlat(df[~is_cc], cfg["crs"]["working"], cfg["crs"]["web"])
@@ -48,6 +52,8 @@ def main():
     for name, out_df, key in [("schools", schools, "schools"),
                               ("youth mobility centres (children's centres)", centres,
                                "youth_mobility_centres")]:
+        if out_df.empty:
+            continue                          # let the synthetic step fabricate this layer
         path = resolve(assets[key])
         path.parent.mkdir(parents=True, exist_ok=True)
         out_df.to_csv(path, index=False)

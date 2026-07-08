@@ -1,43 +1,33 @@
-# Interactive City Plan — configuration
-# Default target: City of Wolverhampton (metropolitan borough).
-# To target another authority, change city.* and drop in the matching data files.
+# Interactive City Plan — pipeline configuration (city-agnostic).
+# Per-city identifiers live in cities.yaml. Select a city with
+#   python scripts/run_pipeline.py --city <slug>
+# or build them all with scripts/run_all.py.
+#
+# All inputs are aggregate, public, LSOA/ward-level statistics or public
+# facility registers — no personal or safeguarding data.
 
-city:
-  name: Wolverhampton
-  lad_code: E08000031        # ONS LAD/LA code for the City of Wolverhampton
-  gias_la_code: 336          # GIAS "LA (code)" for Wolverhampton (distinct from the ONS code)
+# Base directories. Per-city derived data/build/output are namespaced under
+# these by slug (e.g. data/wolverhampton/…, output/birmingham/…).
+data_dir: data
+work_dir: build
+output_dir: output
 
 crs:
-  working: 27700             # British National Grid (metres) — used for area/joins
-  web: 4326                  # WGS84 lat/lon — used for the Leaflet output
+  working: 27700             # British National Grid (metres) — joins/areas
+  web: 4326                  # WGS84 lat/lon — Leaflet output
 
-# Input data files. These are aggregate, public, LSOA/ward-level statistics only.
-# Obtain the real files from the sources listed in README.md and place them here.
-# If a file is missing, scripts/make_sample_data.py can generate a synthetic
-# stand-in so the pipeline runs end-to-end for demonstration.
-paths:
-  gias_raw: data/raw/gias_wolverhampton.csv       # raw GIAS establishment export (real schools/centres)
-  imd_raw: data/raw/imd_wmca_lsoa2021.csv         # raw Indices of Deprivation export (LSOA 2021, incl. geometry)
-  boundaries: data/lsoa_boundaries.geojson       # LSOA (2021) boundaries (from imd_raw if present)
-  imd: data/imd.csv                               # IMD + IDACI deciles/ranks per LSOA
-  youth_population: data/youth_pop.csv            # ONS mid-year est., ages 0-15 per LSOA
-  lsoa_ward_lookup: data/lsoa_ward_lookup.csv     # ONS LSOA -> Ward lookup
-  assets:
-    schools: data/assets/schools.csv
-    football_pitches: data/assets/football_pitches.csv
-    football_providers: data/assets/football_providers.csv
-    youth_mobility_centres: data/assets/youth_mobility_centres.csv
+# Shared NATIONAL/REGIONAL raw inputs, filtered to each city by its codes.
+# Drop these in once; every city reads from them.
+raw:
+  imd: data/raw/imd_wmca_lsoa2021.csv      # Indices of Deprivation, LSOA 2021 (incl. geometry)
+  gias: data/raw/gias_wolverhampton.csv    # GIAS establishment export
 
-work_dir: build              # intermediate artefacts
-output_dir: output           # final map + geojson
-
-# Public boundary mirror used by make_sample_data.py to fetch the REAL city
-# outline (ONS LSOA/ward geometry) when no local boundary file is supplied.
+# Public mirror for ward geometry (LSOA fallback) — {lad} filled per city.
 boundary_source:
   lsoa: "https://raw.githubusercontent.com/martinjc/UK-GeoJSON/master/json/statistical/eng/lsoa_by_lad/{lad}.json"
   wards: "https://raw.githubusercontent.com/martinjc/UK-GeoJSON/master/json/electoral/eng/wards_by_lad/{lad}.json"
 
-# Relative importance of each asset type when scoring provision / readiness.
+# Relative importance of each asset type for provision / readiness.
 asset_weights:
   schools: 1.0
   football_pitches: 1.5
@@ -46,10 +36,9 @@ asset_weights:
 
 # Weights for the composite LSOA priority score (must sum to ~1.0).
 priority_weights:
-  idaci: 0.30                # deprivation affecting children
-  imd: 0.20                  # overall deprivation
-  youth_pop: 0.25            # size of the youth cohort
-  inverse_provision: 0.25    # scarcity of existing provision
+  idaci: 0.30
+  imd: 0.20
+  youth_pop: 0.25
+  inverse_provision: 0.25
 
-# Number of bands for the coverage-level classification.
 coverage_bands: 5

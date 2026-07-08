@@ -22,8 +22,10 @@ readiness, cold-spot quadrants, coverage level, ward provision & priority scores
 ```bash
 pip install -r requirements.txt          # geopandas, folium, branca, pyyaml, openpyxl …
 ```
-Confirm the target authority in `config.yaml` (`city.name`, `city.lad_code`,
-`city.gias_la_code`).
+Cities are defined once in **`cities.yaml`** (name + ONS `lad_code` + DfE
+`gias_la_code`). `config.yaml` holds only city-agnostic pipeline settings
+(paths, CRS, weights). Shared national raw inputs go in `data/raw/` and are
+filtered to each city by its codes.
 
 ## 3. Data inputs — obtain & place
 Drop each real file at its `config.yaml` path (or its `*_raw` path where a prep
@@ -48,9 +50,12 @@ Notes:
 
 ## 4. Run the routine
 ```bash
-python scripts/run_pipeline.py           # full build; --no-sample to require real inputs only
+python scripts/run_pipeline.py --city wolverhampton   # one city
+python scripts/run_all.py                             # every city in cities.yaml + output/index.html
+python scripts/run_all.py --only wolverhampton,sandwell
 ```
-Stage order (all in `scripts/`, orchestrated by `run_pipeline.py`):
+Outputs are namespaced per city: `output/<slug>/city_plan.html`, with a linked
+`output/index.html` from `run_all.py`. Stage order (all in `scripts/`):
 
 1. `prepare_imd.py` — IoD → `data/imd.csv` + 2021 boundaries *(if `imd_raw` present)*
 2. `prepare_gias.py` — GIAS → real `schools.csv`, `youth_mobility_centres.csv` *(if `gias_raw` present)*
@@ -71,10 +76,16 @@ Open `output/city_plan.html` in a browser (needs internet for basemap tiles).
 Suggested cadence: IoD on each release; GIAS termly; ONS population annually;
 football data on the local Playing Pitch Strategy cycle.
 
-## 6. Adapt to another authority
-Edit `config.yaml` → `city.name`, `city.lad_code` (ONS), `city.gias_la_code`
-(GIAS), and supply that authority's data files. No code changes needed — column
-names are auto-detected and boundaries come from the IoD export.
+## 6. Add another city (the standard)
+Add one row to `cities.yaml`:
+```yaml
+  <slug>: { name: <Name>, lad_code: <ONS E-code>, gias_la_code: <DfE LA number> }
+```
+Then `python scripts/run_pipeline.py --city <slug>` (or re-run `run_all.py`). No
+code changes: the shared national IoD/GIAS/ONS files are filtered by these codes,
+boundaries come from the IoD `geom`, and column names are auto-detected. A city
+with no rows in a given raw file simply gets that layer fabricated (clearly
+labelled) until real data is supplied.
 
 ## 7. Verification checklist
 - [ ] Pipeline completes with no errors; stage logs show expected row counts.

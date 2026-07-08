@@ -28,24 +28,26 @@ pupil-level, or safeguarding data.
 
 ```bash
 pip install -r requirements.txt
-python scripts/run_pipeline.py           # builds output/city_plan.html
+python scripts/run_pipeline.py --city wolverhampton   # one city -> output/wolverhampton/city_plan.html
+python scripts/run_all.py                             # every city in cities.yaml + output/index.html
 ```
 
-With no input files present, the pipeline fetches the **real ONS LSOA/ward
-boundary geometry** for the configured authority (so the map has the true city
-shape) and layers **synthetic attributes and asset points** on top so it runs
-end-to-end. The fabricated attributes are for verifying the pipeline only — not
-for analysis. Use `--no-sample` to require real inputs instead.
+Cities are listed in **`cities.yaml`** (name + ONS `lad_code` + DfE
+`gias_la_code`); `config.yaml` holds only city-agnostic settings. With no input
+files present, the pipeline fetches **real boundary geometry** for the city (so
+the map has the true shape) and layers **synthetic attributes and asset points**
+on top so it runs end-to-end. Fabricated attributes are for verifying the
+pipeline only — not for analysis. Use `--no-sample` to require real inputs.
 
-Open `output/city_plan.html` in a browser (needs internet for the basemap
+Open `output/<city>/city_plan.html` in a browser (needs internet for the basemap
 tiles). Toggle layers via the control top-right; hover an LSOA for its stats.
 
 ## Using real data
 
-Download the files below and place them at the paths in `config.yaml`
-(`data/…`), then re-run the pipeline. Column names are auto-detected, so the
-raw government headers work unchanged. Real files are **never overwritten** —
-`make_sample_data.py` fabricates only the inputs that are still missing.
+Place the shared national files below under `data/raw/` (paths in `config.yaml`
+→ `raw.*`); each is filtered to a city by its codes. Column names are
+auto-detected, so raw government headers work unchanged. Real files are **never
+overwritten** — `make_sample_data.py` fabricates only the inputs still missing.
 
 | Config path | Source |
 |---|---|
@@ -79,11 +81,11 @@ magnitude from the national rank (or decile) where no raw score is provided.
 
 ### Schools & youth-mobility centres — GIAS
 
-Drop a raw **GIAS** export (Get Information About Schools, gov.uk) at
-`paths.gias_raw`. `prepare_gias.py` keeps open establishments in
-`city.gias_la_code` (Wolverhampton = `336`), converts Easting/Northing to
-lon/lat, and writes real `schools.csv` (114 schools) and
-`youth_mobility_centres.csv` (16 children's centres). Only establishment
+Drop a raw **GIAS** export (Get Information About Schools, gov.uk) at `raw.gias`.
+`prepare_gias.py` keeps open establishments whose GIAS LA code matches the city's
+`gias_la_code` (from `cities.yaml`; Wolverhampton = `336`), converts
+Easting/Northing to lon/lat, and writes real `schools.csv` and
+`youth_mobility_centres.csv` (children's centres). Only establishment
 **name + location + type** are used — no pupil, FSM, or staff fields.
 
 **Current layer status:** boundaries (LSOA 2021), IMD/IDACI deprivation, schools
@@ -104,6 +106,15 @@ real sources are supplied.
 | 4 | `build_geojson.py` | `output/city_plan_lsoa.geojson`, `…_wards.geojson` |
 | 5 | `build_map.py` | `output/city_plan.html` |
 
-`run_pipeline.py` runs stages 1–5 (and 0 if inputs are missing). `common.py`
-holds shared config/column-detection helpers. Targeting another authority is a
-matter of editing `city` in `config.yaml` and supplying its data files.
+Paths above are namespaced per city (`data/<slug>/…`, `output/<slug>/…`).
+`run_pipeline.py --city <slug>` runs one city; `run_all.py` builds every city in
+`cities.yaml` plus `output/index.html`. `common.py` holds the city-aware config
+loader and column-detection helpers.
+
+## Adding a city
+
+Add a row to `cities.yaml` — `{ name, lad_code (ONS), gias_la_code (DfE) }` — and
+run `run_pipeline.py --city <slug>`. No code changes: shared national files are
+filtered by these codes, boundaries come from the IoD `geom`, and any layer with
+no data for that city is fabricated (clearly labelled) until real data arrives.
+See **ROUTINE.md** for the full runbook.

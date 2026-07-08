@@ -1,0 +1,17 @@
+# City registry — the ONLY per-city configuration.
+# Each national dataset is filtered to a city by these codes; everything else
+# (metrics, map, prep scripts) is city-agnostic. Add a city by adding a row.
+#
+#   lad_code      ONS Local Authority District code (used for IoD + boundaries)
+#   gias_la_code  DfE/GIAS 3-digit LA number (used to filter the GIAS export)
+
+default_city: wolverhampton
+
+cities:
+  wolverhampton: { name: Wolverhampton, lad_code: E08000031, gias_la_code: 336 }
+  birmingham:    { name: Birmingham,    lad_code: E08000025, gias_la_code: 330 }
+  coventry:      { name: Coventry,      lad_code: E08000026, gias_la_code: 331 }
+  dudley:        { name: Dudley,        lad_code: E08000027, gias_la_code: 332 }
+  sandwell:      { name: Sandwell,      lad_code: E08000028, gias_la_code: 333 }
+  solihull:      { name: Solihull,      lad_code: E08000029, gias_la_code: 334 }
+  walsall:       { name: Walsall,       lad_code: E08000030, gias_la_code: 335 }

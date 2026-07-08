@@ -30,7 +30,9 @@ def main():
     df[code] = clean_codes(df[code])
     df = df[df[la_code] == cfg["city"]["lad_code"]]
     if df.empty:
-        raise SystemExit(f"No LSOAs for {cfg['city']['lad_code']} in {raw}.")
+        print(f"No IoD rows for {cfg['city']['name']} ({cfg['city']['lad_code']}) in {raw}; "
+              f"boundaries will fall back to the public mirror.")
+        return
 
     imd_dec = find_column(df.columns, ["multiple", "decile"])
     imd_rank = find_column(df.columns, ["multiple", "rank"])
@@ -42,7 +44,9 @@ def main():
                          ("idaci_decile", idaci_dec), ("idaci_rank", idaci_rank)]:
         if src is not None:
             imd[out_col] = pd.to_numeric(df[src], errors="coerce")
-    imd.to_csv(resolve(cfg["paths"]["imd"]), index=False)
+    imd_path = resolve(cfg["paths"]["imd"])
+    imd_path.parent.mkdir(parents=True, exist_ok=True)
+    imd.to_csv(imd_path, index=False)
     print(f"Wrote real IoD deciles/ranks for {len(imd)} LSOAs -> {resolve(cfg['paths']['imd'])}")
 
     # Boundaries from the embedded geometry (2021).
