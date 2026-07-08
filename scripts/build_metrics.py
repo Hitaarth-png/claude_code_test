@@ -29,9 +29,13 @@ def main():
     asset_cols = list(aw.keys())
     for c in asset_cols:
         df[c] = df.get(c, 0).fillna(0)
+        # Accessibility score per type; falls back to the raw count if absent.
+        acc = f"{c}_access"
+        df[acc] = df[acc].fillna(0) if acc in df else df[c]
 
-    # Weighted provision relative to the youth cohort it should serve.
-    df["weighted_assets"] = sum(df[c] * aw[c] for c in asset_cols)
+    # Provision uses the accessibility score (reach), relative to the youth
+    # cohort it should serve; assets_total keeps the raw in-LSOA counts.
+    df["weighted_assets"] = sum(df[f"{c}_access"] * aw[c] for c in asset_cols)
     df["assets_total"] = df[asset_cols].sum(axis=1)
     youth = df["youth_population"].clip(lower=1)
     df["provision_per_1000_youth"] = (df["weighted_assets"] / youth * 1000).round(2)

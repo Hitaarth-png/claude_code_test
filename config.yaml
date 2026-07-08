@@ -42,3 +42,13 @@ priority_weights:
   inverse_provision: 0.25
 
 coverage_bands: 5
+
+# How provision is measured for each LSOA:
+#   method: catchment  -> distance-decayed count of assets within radius_m of the
+#                         LSOA centre (assets just over a border still count)
+#           containment -> assets strictly inside the LSOA only
+#   decay:  none | linear | gaussian  (weight vs distance within the catchment)
+provision:
+  method: catchment
+  radius_m: 1500
+  decay: linear

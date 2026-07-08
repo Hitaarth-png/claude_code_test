@@ -21,6 +21,10 @@ pupil-level, or safeguarding data.
 - **Cold-spot quadrants** — high-need × low-provision 2×2 classification
 - **Coverage level** — provision banded into 5 levels
 - **Ward provision score** — weighted assets per 1,000 youth, rolled up to ward
+  (provision uses an **accessibility** measure — a distance-decayed count of
+  assets within `provision.radius_m` of each LSOA, so assets just over a boundary
+  still count; set `provision.method: containment` in `config.yaml` for the old
+  strictly-inside behaviour)
 - **Priority score** — weighted blend of IDACI, IMD, youth population and
   provision scarcity (weights in `config.yaml`)
 
